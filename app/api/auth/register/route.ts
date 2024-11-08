@@ -7,16 +7,16 @@ const JWT_SECRET = process.env.JWT_SECRET || 'your-secret-key';
 
 export async function POST(request: NextRequest) {
   try {
-    const { email, password } = await request.json();
+    const { phoneNumber, password } = await request.json();
 
     // Check if user already exists
     const existingUser = await sql`
-      SELECT * FROM users WHERE email = ${email}
+      SELECT * FROM users WHERE phone_number = ${phoneNumber}
     `;
 
     if (existingUser.rows.length > 0) {
       return NextResponse.json(
-        { error: 'User already exists' },
+        { error: 'User with this phone number already exists' },
         { status: 400 }
       );
     }
@@ -26,16 +26,16 @@ export async function POST(request: NextRequest) {
 
     // Create new user
     const result = await sql`
-      INSERT INTO users (email, password)
-      VALUES (${email}, ${hashedPassword})
-      RETURNING id, email
+      INSERT INTO users (phone_number, password)
+      VALUES (${phoneNumber}, ${hashedPassword})
+      RETURNING id, phone_number
     `;
 
     const user = result.rows[0];
 
     // Generate JWT token
     const token = jwt.sign(
-      { userId: user.id, email: user.email },
+      { userId: user.id, phoneNumber: user.phone_number },
       JWT_SECRET,
       { expiresIn: '24h' }
     );
