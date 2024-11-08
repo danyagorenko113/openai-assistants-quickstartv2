@@ -7,6 +7,7 @@ import Markdown from "react-markdown";
 // @ts-expect-error - no types for this yet
 import { AssistantStreamEvent } from "openai/resources/beta/assistants/assistants";
 import { RequiredActionFunctionToolCall } from "openai/resources/beta/threads/runs/runs";
+import QuickQuestions from "./QuickQuestions";
 
 type MessageProps = {
   role: "user" | "assistant" | "code";
@@ -61,9 +62,10 @@ const Chat = ({
   functionCallHandler = () => Promise.resolve(""), // default to return empty string
 }: ChatProps) => {
   const [userInput, setUserInput] = useState("");
-  const [messages, setMessages] = useState([]);
+  const [messages, setMessages] = useState<MessageProps[]>([]);
   const [inputDisabled, setInputDisabled] = useState(false);
   const [threadId, setThreadId] = useState("");
+  const [showQuickQuestions, setShowQuickQuestions] = useState(true);
 
   // automatically scroll to bottom of chat
   const messagesEndRef = useRef<HTMLDivElement | null>(null);
@@ -86,7 +88,7 @@ const Chat = ({
     createThread();
   }, []);
 
-  const sendMessage = async (text) => {
+  const sendMessage = async (text: string) => {
     const response = await fetch(
       `/api/assistants/threads/${threadId}/messages`,
       {
@@ -100,7 +102,7 @@ const Chat = ({
     handleReadableStream(stream);
   };
 
-  const submitActionResult = async (runId, toolCallOutputs) => {
+  const submitActionResult = async (runId: string, toolCallOutputs: any[]) => {
     const response = await fetch(
       `/api/assistants/threads/${threadId}/actions`,
       {
@@ -118,7 +120,7 @@ const Chat = ({
     handleReadableStream(stream);
   };
 
-  const handleSubmit = (e) => {
+  const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (!userInput.trim()) return;
     sendMessage(userInput);
@@ -128,6 +130,18 @@ const Chat = ({
     ]);
     setUserInput("");
     setInputDisabled(true);
+    setShowQuickQuestions(false);
+    scrollToBottom();
+  };
+
+  const handleQuickQuestionClick = (question: string) => {
+    sendMessage(question);
+    setMessages((prevMessages) => [
+      ...prevMessages,
+      { role: "user", text: question },
+    ]);
+    setInputDisabled(true);
+    setShowQuickQuestions(false);
     scrollToBottom();
   };
 
@@ -139,7 +153,7 @@ const Chat = ({
   };
 
   // textDelta - append text to last assistant message
-  const handleTextDelta = (delta) => {
+  const handleTextDelta = (delta: { value: string | null; annotations: any[] | null }) => {
     if (delta.value != null) {
       appendToLastMessage(delta.value);
     };
@@ -149,20 +163,20 @@ const Chat = ({
   };
 
   // imageFileDone - show image in chat
-  const handleImageFileDone = (image) => {
+  const handleImageFileDone = (image: { file_id: string }) => {
     appendToLastMessage(`\n![${image.file_id}](/api/files/${image.file_id})\n`);
   }
 
   // toolCallCreated - log new tool call
-  const toolCallCreated = (toolCall) => {
+  const toolCallCreated = (toolCall: { type: string }) => {
     if (toolCall.type != "code_interpreter") return;
     appendMessage("code", "");
   };
 
   // toolCallDelta - log delta and snapshot for the tool call
-  const toolCallDelta = (delta, snapshot) => {
+  const toolCallDelta = (delta: { type: string; code_interpreter?: { input: string } }, snapshot: any) => {
     if (delta.type != "code_interpreter") return;
-    if (!delta.code_interpreter.input) return;
+    if (!delta.code_interpreter?.input) return;
     appendToLastMessage(delta.code_interpreter.input);
   };
 
@@ -201,7 +215,7 @@ const Chat = ({
     stream.on("toolCallDelta", toolCallDelta);
 
     // events without helpers yet (e.g. requires_action and run.done)
-    stream.on("event", (event) => {
+    stream.on("event", (event: any) => {
       if (event.event === "thread.run.requires_action")
         handleRequiresAction(event);
       if (event.event === "thread.run.completed") handleRunCompleted();
@@ -214,7 +228,7 @@ const Chat = ({
     =======================
   */
 
-  const appendToLastMessage = (text) => {
+  const appendToLastMessage = (text: string) => {
     setMessages((prevMessages) => {
       const lastMessage = prevMessages[prevMessages.length - 1];
       const updatedLastMessage = {
@@ -225,18 +239,18 @@ const Chat = ({
     });
   };
 
-  const appendMessage = (role, text) => {
+  const appendMessage = (role: "user" | "assistant" | "code", text: string) => {
     setMessages((prevMessages) => [...prevMessages, { role, text }]);
   };
 
-  const annotateLastMessage = (annotations) => {
+  const annotateLastMessage = (annotations: Array<{ type: string; text: string; file_path?: { file_id: string } }>) => {
     setMessages((prevMessages) => {
       const lastMessage = prevMessages[prevMessages.length - 1];
       const updatedLastMessage = {
         ...lastMessage,
       };
       annotations.forEach((annotation) => {
-        if (annotation.type === 'file_path') {
+        if (annotation.type === 'file_path' && annotation.file_path) {
           updatedLastMessage.text = updatedLastMessage.text.replaceAll(
             annotation.text,
             `/api/files/${annotation.file_path.file_id}`
@@ -245,11 +259,13 @@ const Chat = ({
       })
       return [...prevMessages.slice(0, -1), updatedLastMessage];
     });
-    
   }
 
   return (
     <div className={styles.chatContainer}>
+      {showQuickQuestions && messages.length === 0 && (
+        <QuickQuestions onQuestionClick={handleQuickQuestionClick} />
+      )}
       <div className={styles.messages}>
         {messages.map((msg, index) => (
           <Message key={index} role={msg.role} text={msg.text} />
@@ -266,6 +282,7 @@ const Chat = ({
           value={userInput}
           onChange={(e) => setUserInput(e.target.value)}
           placeholder="Enter your question"
+          disabled={inputDisabled}
         />
         <button
           type="submit"
