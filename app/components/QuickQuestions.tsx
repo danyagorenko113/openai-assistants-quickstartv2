@@ -1,6 +1,5 @@
 import React from 'react';
-import { Button } from "@/app/components/ui/button"
-import { Card, CardContent, CardHeader, CardTitle } from "@/app/components/ui/card"
+import styles from './QuickQuestions.module.css';
 
 interface QuickQuestionsProps {
   onQuestionClick: (question: string) => void;
@@ -15,22 +14,21 @@ export default function QuickQuestions({ onQuestionClick }: QuickQuestionsProps)
   ];
 
   return (
-    <Card className="w-full max-w-2xl mx-auto mb-8 shadow-lg">
-      <CardHeader className="bg-gradient-to-r from-blue-500 to-purple-600 text-white rounded-t-lg">
-        <CardTitle className="text-2xl font-bold">Start new chat with assistant:</CardTitle>
-      </CardHeader>
-      <CardContent className="grid gap-4 p-6">
+    <div className={styles.card}>
+      <div className={styles.cardHeader}>
+        <h2 className={styles.cardTitle}>Start new chat with assistant:</h2>
+      </div>
+      <div className={styles.cardContent}>
         {questions.map((question, index) => (
-          <Button
+          <button
             key={index}
-            variant="outline"
-            className="w-full justify-start text-left h-auto py-4 px-6 text-lg font-medium rounded-lg transition-all duration-200 ease-in-out hover:bg-blue-50 hover:text-blue-700 hover:border-blue-300 focus:ring-2 focus:ring-blue-500 focus:ring-opacity-50"
+            className={styles.questionButton}
             onClick={() => onQuestionClick(question)}
           >
             {question}
-          </Button>
+          </button>
         ))}
-      </CardContent>
-    </Card>
+      </div>
+    </div>
   );
 }
