@@ -3,9 +3,10 @@ import styles from './Login.module.css';
 
 interface LoginProps {
   onLogin: (token: string) => void;
+  onClose?: () => void;  // Made optional with '?'
 }
 
-const Login: React.FC<LoginProps> = ({ onLogin }) => {
+const Login: React.FC<LoginProps> = ({ onLogin, onClose }) => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
@@ -49,6 +50,15 @@ const Login: React.FC<LoginProps> = ({ onLogin }) => {
           required
         />
         <button type="submit">Login</button>
+        {onClose && (
+          <button 
+            type="button" 
+            onClick={onClose} 
+            className={styles.closeButton}
+          >
+            Back to Chat
+          </button>
+        )}
       </form>
     </div>
   );
