@@ -39,7 +39,9 @@ const CodeMessage = React.memo(({ text }: { text: string }) => (
 ));
 
 const SystemMessage = React.memo(({ text }: { text: string }) => (
-  <div className={styles.systemMessage}>{text}</div>
+  <div className={styles.assistantMessage}>
+    <Markdown>{text}</Markdown>
+  </div>
 ));
 
 const Message = React.memo(({ role, text }: MessageProps) => {
@@ -212,8 +214,9 @@ const Chat = ({ functionCallHandler = () => Promise.resolve("") }: ChatProps) =>
     if (signUpStep === "phone") {
       setPhoneNumber(userInput);
       setSignUpStep("password");
-      appendMessage("system", "Thank you! Please write password to save your conversation.");
+      appendMessage("system", "Thank you! Please write a password to save your conversation.");
       setUserInput("");
+      setInputDisabled(false);
     } else if (signUpStep === "password") {
       // Here you would typically send a request to your backend to register the user
       // For this example, we'll just simulate a successful registration
@@ -221,24 +224,25 @@ const Chat = ({ functionCallHandler = () => Promise.resolve("") }: ChatProps) =>
       setSignUpStep("none");
       appendMessage("system", "Thank you! Your password has been successfully created.");
       sendMessage(lastUserMessageBeforeSignUp);
+      setUserInput("");
     } else {
       if (userMessageCount === 4) {
         setLastUserMessageBeforeSignUp(userInput);
       }
       sendMessage(userInput);
       setMessages(prev => [...prev, { role: "user", text: userInput }]);
+      setUserInput("");
       setUserMessageCount(prevCount => {
         const newCount = prevCount + 1;
         if (newCount === 5) {
           setSignUpStep("phone");
           appendMessage("system", "Please provide your phone number to continue the conversation.");
+          setInputDisabled(false);
         }
         return newCount;
       });
     }
 
-    setUserInput("");
-    setInputDisabled(true);
     setShowQuickQuestions(false);
     scrollToBottom();
   }, [userInput, sendMessage, scrollToBottom, userMessageCount, signUpStep, lastUserMessageBeforeSignUp]);
@@ -254,10 +258,10 @@ const Chat = ({ functionCallHandler = () => Promise.resolve("") }: ChatProps) =>
       if (newCount === 5) {
         setSignUpStep("phone");
         appendMessage("system", "Please provide your phone number to continue the conversation.");
+        setInputDisabled(false);
       }
       return newCount;
     });
-    setInputDisabled(true);
     setShowQuickQuestions(false);
     scrollToBottom();
   }, [sendMessage, scrollToBottom, userMessageCount]);
