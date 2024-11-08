@@ -10,6 +10,7 @@ import { RequiredActionFunctionToolCall } from "openai/resources/beta/threads/ru
 import type { CodeInterpreterToolCallDelta, ToolCall } from "openai/resources/beta/threads/runs/steps";
 import QuickQuestions from "./QuickQuestions";
 import Login from "./Login";
+import LoginIcon from "./LoginIcon";
 
 type MessageProps = {
   role: "user" | "assistant" | "code";
@@ -57,6 +58,7 @@ const Chat = ({ functionCallHandler = () => Promise.resolve("") }: ChatProps) =>
   const [threadId, setThreadId] = useState("");
   const [showQuickQuestions, setShowQuickQuestions] = useState(true);
   const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [showLoginForm, setShowLoginForm] = useState(false);
   const [token, setToken] = useState("");
 
   const messagesEndRef = useRef<HTMLDivElement>(null);
@@ -216,11 +218,16 @@ const Chat = ({ functionCallHandler = () => Promise.resolve("") }: ChatProps) =>
   const handleLogin = useCallback((newToken: string) => {
     setToken(newToken);
     setIsAuthenticated(true);
+    setShowLoginForm(false);
     localStorage.setItem('token', newToken);
   }, []);
 
-  if (!isAuthenticated) {
-    return <Login onLogin={handleLogin} />;
+  const handleLoginIconClick = useCallback(() => {
+    setShowLoginForm(true);
+  }, []);
+
+  if (showLoginForm) {
+    return <Login onLogin={handleLogin} onClose={() => setShowLoginForm(false)} />;
   }
 
   return (
@@ -247,13 +254,14 @@ const Chat = ({ functionCallHandler = () => Promise.resolve("") }: ChatProps) =>
             value={userInput}
             onChange={(e) => setUserInput(e.target.value)}
             placeholder="Enter your question"
-            disabled={inputDisabled}
+            disabled={inputDisabled || !isAuthenticated}
           />
-          <button type="submit" className={styles.button} disabled={inputDisabled}>
+          <button type="submit" className={styles.button} disabled={inputDisabled || !isAuthenticated}>
             Send
           </button>
         </form>
       </div>
+      {!isAuthenticated && <LoginIcon onClick={handleLoginIconClick} />}
     </div>
   );
 };
