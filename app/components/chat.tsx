@@ -14,6 +14,31 @@ type MessageProps = {
   text: string;
 };
 
+type CodeInterpreter = {
+  input?: string;
+  outputs?: Array<{
+    type: string;
+    text?: string;
+    image?: {
+      file_id: string;
+    };
+  }>;
+};
+
+type CodeInterpreterToolCallDelta = {
+  type: "code_interpreter";
+  code_interpreter: {
+    input: string;
+  };
+};
+
+type ToolCallDelta = CodeInterpreterToolCallDelta;
+
+type ToolCall = {
+  type: "code_interpreter";
+  code_interpreter: CodeInterpreter;
+};
+
 const UserMessage = ({ text }: { text: string }) => {
   return <div className={styles.userMessage}>{text}</div>;
 };
@@ -108,7 +133,7 @@ const Chat = ({
     appendMessage("code", "");
   };
 
-  const toolCallDelta = (delta: { type: string; code_interpreter?: { input: string } }, snapshot: any) => {
+  const toolCallDelta = (delta: CodeInterpreterToolCallDelta, snapshot: ToolCall) => {
     if (delta.type !== "code_interpreter") return;
     if (!delta.code_interpreter?.input) return;
     appendToLastMessage(delta.code_interpreter.input);
