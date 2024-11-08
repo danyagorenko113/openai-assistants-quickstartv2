@@ -228,13 +228,25 @@ const Chat = ({ functionCallHandler = () => Promise.resolve("") }: ChatProps) =>
         body: JSON.stringify({ phoneNumber, password }),
       });
 
-      if (!response.ok) {
-        const errorData = await response.json();
-        console.error("Registration response not OK:", response.status, errorData);
-        throw new Error(errorData.error || `Registration failed with status ${response.status}`);
+      let errorData;
+      let data;
+
+      try {
+        if (!response.ok) {
+          errorData = await response.json();
+        } else {
+          data = await response.json();
+        }
+      } catch (jsonError) {
+        console.error("Error parsing JSON:", jsonError);
+        throw new Error(`Failed to parse server response: ${await response.text()}`);
       }
 
-      const data = await response.json();
+      if (!response.ok) {
+        console.error("Registration response not OK:", response.status, errorData);
+        throw new Error(errorData?.error || `Registration failed with status ${response.status}`);
+      }
+
       console.log("Registration successful, received data:", data);
       if (!data.token) {
         throw new Error("No token received from server");
