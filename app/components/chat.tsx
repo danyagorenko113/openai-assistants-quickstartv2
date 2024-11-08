@@ -9,6 +9,7 @@ import { AssistantStreamEvent } from "openai/resources/beta/assistants/assistant
 import { RequiredActionFunctionToolCall } from "openai/resources/beta/threads/runs/runs";
 import type { CodeInterpreterToolCallDelta, ToolCall } from "openai/resources/beta/threads/runs/steps";
 import QuickQuestions from "./QuickQuestions";
+import Login from "./Login";
 
 type MessageProps = {
   role: "user" | "assistant" | "code";
@@ -55,6 +56,8 @@ const Chat = ({ functionCallHandler = () => Promise.resolve("") }: ChatProps) =>
   const [inputDisabled, setInputDisabled] = useState(false);
   const [threadId, setThreadId] = useState("");
   const [showQuickQuestions, setShowQuickQuestions] = useState(true);
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [token, setToken] = useState("");
 
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const chatContainerRef = useRef<HTMLDivElement>(null);
@@ -68,13 +71,28 @@ const Chat = ({ functionCallHandler = () => Promise.resolve("") }: ChatProps) =>
   }, [messages, scrollToBottom]);
 
   useEffect(() => {
+    const storedToken = localStorage.getItem('token');
+    if (storedToken) {
+      setToken(storedToken);
+      setIsAuthenticated(true);
+    }
+  }, []);
+
+  useEffect(() => {
     const createThread = async () => {
-      const res = await fetch(`/api/assistants/threads`, { method: "POST" });
+      const res = await fetch(`/api/assistants/threads`, { 
+        method: "POST",
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      });
       const data = await res.json();
       setThreadId(data.threadId);
     };
-    createThread();
-  }, []);
+    if (isAuthenticated) {
+      createThread();
+    }
+  }, [isAuthenticated, token]);
 
   const handleTextCreated = useCallback(() => appendMessage("assistant", ""), []);
 
@@ -125,21 +143,28 @@ const Chat = ({ functionCallHandler = () => Promise.resolve("") }: ChatProps) =>
   const sendMessage = useCallback(async (text: string) => {
     const response = await fetch(`/api/assistants/threads/${threadId}/messages`, {
       method: "POST",
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${token}`
+      },
       body: JSON.stringify({ content: text }),
     });
     const stream = AssistantStream.fromReadableStream(response.body);
     handleReadableStream(stream);
-  }, [threadId, handleReadableStream]);
+  }, [threadId, handleReadableStream, token]);
 
   const submitActionResult = useCallback(async (runId: string, toolCallOutputs: any[]) => {
     const response = await fetch(`/api/assistants/threads/${threadId}/actions`, {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+      headers: { 
+        "Content-Type": "application/json",
+        'Authorization': `Bearer ${token}`
+      },
       body: JSON.stringify({ runId, toolCallOutputs }),
     });
     const stream = AssistantStream.fromReadableStream(response.body);
     handleReadableStream(stream);
-  }, [threadId, handleReadableStream]);
+  }, [threadId, handleReadableStream, token]);
 
   const handleSubmit = useCallback((e: React.FormEvent) => {
     e.preventDefault();
@@ -187,6 +212,16 @@ const Chat = ({ functionCallHandler = () => Promise.resolve("") }: ChatProps) =>
       return [...prev.slice(0, -1), updatedLastMessage];
     });
   }, []);
+
+  const handleLogin = useCallback((newToken: string) => {
+    setToken(newToken);
+    setIsAuthenticated(true);
+    localStorage.setItem('token', newToken);
+  }, []);
+
+  if (!isAuthenticated) {
+    return <Login onLogin={handleLogin} />;
+  }
 
   return (
     <div className={styles.chatContainer} ref={chatContainerRef}>
