@@ -74,6 +74,7 @@ const Chat = ({ functionCallHandler = () => Promise.resolve("") }: ChatProps) =>
   const [signUpStep, setSignUpStep] = useState<"none" | "phone" | "password">("none");
   const [phoneNumber, setPhoneNumber] = useState("");
   const [lastUserMessageBeforeSignUp, setLastUserMessageBeforeSignUp] = useState("");
+  const [error, setError] = useState<string | null>(null);
 
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const chatContainerRef = useRef<HTMLDivElement>(null);
@@ -111,6 +112,7 @@ const Chat = ({ functionCallHandler = () => Promise.resolve("") }: ChatProps) =>
         setThreadId(data.threadId);
       } catch (error) {
         console.error('Error creating thread:', error);
+        setError('Failed to start a new conversation. Please try again.');
       }
     };
     if (!threadId) {
@@ -167,6 +169,7 @@ const Chat = ({ functionCallHandler = () => Promise.resolve("") }: ChatProps) =>
   const sendMessage = useCallback(async (text: string) => {
     if (!threadId) {
       console.error('No thread ID available');
+      setError('Unable to send message. Please try again.');
       return;
     }
     try {
@@ -185,6 +188,7 @@ const Chat = ({ functionCallHandler = () => Promise.resolve("") }: ChatProps) =>
       handleReadableStream(stream);
     } catch (error) {
       console.error('Error sending message:', error);
+      setError('Failed to send message. Please try again.');
       setInputDisabled(false);
     }
   }, [threadId, handleReadableStream, token]);
@@ -206,6 +210,7 @@ const Chat = ({ functionCallHandler = () => Promise.resolve("") }: ChatProps) =>
       handleReadableStream(stream);
     } catch (error) {
       console.error('Error submitting action result:', error);
+      setError('Failed to process the request. Please try again.');
       setInputDisabled(false);
     }
   }, [threadId, handleReadableStream, token]);
@@ -221,7 +226,8 @@ const Chat = ({ functionCallHandler = () => Promise.resolve("") }: ChatProps) =>
       });
 
       if (!response.ok) {
-        throw new Error('Failed to register user');
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'Failed to register user');
       }
 
       const data = await response.json();
@@ -235,6 +241,8 @@ const Chat = ({ functionCallHandler = () => Promise.resolve("") }: ChatProps) =>
   const handleSubmit = useCallback(async (e: React.FormEvent) => {
     e.preventDefault();
     if (!userInput.trim()) return;
+
+    setError(null);
 
     if (signUpStep === "phone") {
       setPhoneNumber(userInput);
@@ -256,8 +264,15 @@ const Chat = ({ functionCallHandler = () => Promise.resolve("") }: ChatProps) =>
         sendMessage(lastUserMessageBeforeSignUp);
         setUserInput("");
       } catch (error) {
-        console.error('Failed to register user:', error);
-        appendMessage("system", "Sorry, there was an error creating your account. Please try again.");
+        if (error instanceof Error) {
+          setError(error.message);
+          appendMessage("system", `Error: ${error.message}. Please try again.`);
+        } else {
+          setError("An unexpected error occurred. Please try again.");
+          appendMessage("system", "An unexpected error occurred. Please try again.");
+        }
+        setSignUpStep("phone");
+        setPhoneNumber("");
       }
     } else {
       if (userMessageCount === 4) {
@@ -370,6 +385,7 @@ const Chat = ({ functionCallHandler = () => Promise.resolve("") }: ChatProps) =>
           </div>
         )}
       </div>
+      {error && <div className={styles.errorMessage}>{error}</div>}
       <div className={styles.inputContainer}>
         <form onSubmit={handleSubmit} className={styles.inputForm}>
           <input
