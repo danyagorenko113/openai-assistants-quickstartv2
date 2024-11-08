@@ -82,19 +82,27 @@ const Chat = ({ functionCallHandler = () => Promise.resolve("") }: ChatProps) =>
 
   useEffect(() => {
     const createThread = async () => {
-      const res = await fetch(`/api/assistants/threads`, { 
-        method: "POST",
-        headers: {
-          'Authorization': `Bearer ${token}`
+      try {
+        const res = await fetch(`/api/assistants/threads`, { 
+          method: "POST",
+          headers: {
+            'Authorization': `Bearer ${token}`,
+            'Content-Type': 'application/json'
+          }
+        });
+        if (!res.ok) {
+          throw new Error('Failed to create thread');
         }
-      });
-      const data = await res.json();
-      setThreadId(data.threadId);
+        const data = await res.json();
+        setThreadId(data.threadId);
+      } catch (error) {
+        console.error('Error creating thread:', error);
+      }
     };
-    if (isAuthenticated) {
+    if (isAuthenticated && !threadId) {
       createThread();
     }
-  }, [isAuthenticated, token]);
+  }, [isAuthenticated, token, threadId]);
 
   const handleTextCreated = useCallback(() => appendMessage("assistant", ""), []);
 
@@ -143,49 +151,70 @@ const Chat = ({ functionCallHandler = () => Promise.resolve("") }: ChatProps) =>
   }, [handleTextCreated, handleTextDelta, handleImageFileDone, toolCallCreated, toolCallDelta, handleRequiresAction]);
 
   const sendMessage = useCallback(async (text: string) => {
-    const response = await fetch(`/api/assistants/threads/${threadId}/messages`, {
-      method: "POST",
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${token}`
-      },
-      body: JSON.stringify({ content: text }),
-    });
-    const stream = AssistantStream.fromReadableStream(response.body);
-    handleReadableStream(stream);
+    if (!threadId) {
+      console.error('No thread ID available');
+      return;
+    }
+    try {
+      const response = await fetch(`/api/assistants/threads/${threadId}/messages`, {
+        method: "POST",
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({ content: text }),
+      });
+      if (!response.ok) {
+        throw new Error('Failed to send message');
+      }
+      const stream = AssistantStream.fromReadableStream(response.body);
+      handleReadableStream(stream);
+    } catch (error) {
+      console.error('Error sending message:', error);
+      setInputDisabled(false);
+    }
   }, [threadId, handleReadableStream, token]);
 
   const submitActionResult = useCallback(async (runId: string, toolCallOutputs: any[]) => {
-    const response = await fetch(`/api/assistants/threads/${threadId}/actions`, {
-      method: "POST",
-      headers: { 
-        "Content-Type": "application/json",
-        'Authorization': `Bearer ${token}`
-      },
-      body: JSON.stringify({ runId, toolCallOutputs }),
-    });
-    const stream = AssistantStream.fromReadableStream(response.body);
-    handleReadableStream(stream);
+    try {
+      const response = await fetch(`/api/assistants/threads/${threadId}/actions`, {
+        method: "POST",
+        headers: { 
+          "Content-Type": "application/json",
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({ runId, toolCallOutputs }),
+      });
+      if (!response.ok) {
+        throw new Error('Failed to submit action result');
+      }
+      const stream = AssistantStream.fromReadableStream(response.body);
+      handleReadableStream(stream);
+    } catch (error) {
+      console.error('Error submitting action result:', error);
+      setInputDisabled(false);
+    }
   }, [threadId, handleReadableStream, token]);
 
   const handleSubmit = useCallback((e: React.FormEvent) => {
     e.preventDefault();
-    if (!userInput.trim()) return;
+    if (!userInput.trim() || !isAuthenticated) return;
     sendMessage(userInput);
     setMessages(prev => [...prev, { role: "user", text: userInput }]);
     setUserInput("");
     setInputDisabled(true);
     setShowQuickQuestions(false);
     scrollToBottom();
-  }, [userInput, sendMessage, scrollToBottom]);
+  }, [userInput, sendMessage, scrollToBottom, isAuthenticated]);
 
   const handleQuickQuestionClick = useCallback((question: string) => {
+    if (!isAuthenticated) return;
     sendMessage(question);
     setMessages(prev => [...prev, { role: "user", text: question }]);
     setInputDisabled(true);
     setShowQuickQuestions(false);
     scrollToBottom();
-  }, [sendMessage, scrollToBottom]);
+  }, [sendMessage, scrollToBottom, isAuthenticated]);
 
   const appendToLastMessage = useCallback((text: string) => {
     setMessages(prev => {
