@@ -182,13 +182,15 @@ const Chat = ({ functionCallHandler = () => Promise.resolve("") }: ChatProps) =>
         body: JSON.stringify({ content: text }),
       });
       if (!response.ok) {
-        throw new Error('Failed to send message');
+        const errorText = await response.text();
+        console.error('Error response:', errorText);
+        throw new Error(`Failed to send message: ${response.status} ${response.statusText}`);
       }
       const stream = AssistantStream.fromReadableStream(response.body);
       handleReadableStream(stream);
     } catch (error) {
       console.error('Error sending message:', error);
-      setError('Failed to send message. Please try again.');
+      setError(`Failed to send message: ${error instanceof Error ? error.message : 'Unknown error'}`);
       setInputDisabled(false);
     }
   }, [threadId, handleReadableStream, token]);
@@ -217,6 +219,7 @@ const Chat = ({ functionCallHandler = () => Promise.resolve("") }: ChatProps) =>
 
   const registerUser = async (phoneNumber: string, password: string) => {
     try {
+      console.log("Sending registration request...");
       const response = await fetch('/api/register', {
         method: 'POST',
         headers: {
@@ -227,14 +230,22 @@ const Chat = ({ functionCallHandler = () => Promise.resolve("") }: ChatProps) =>
 
       if (!response.ok) {
         const errorData = await response.json();
-        throw new Error(errorData.error || 'Failed to register user');
+        console.error("Registration response not OK:", response.status, errorData);
+        throw new Error(errorData.error || `Registration failed with status ${response.status}`);
       }
 
       const data = await response.json();
+      console.log("Registration successful, received data:", data);
+      if (!data.token) {
+        throw new Error("No token received from server");
+      }
       return data.token;
     } catch (error) {
-      console.error('Error registering user:', error);
-      throw error;
+      console.error('Error in registerUser:', error);
+      if (error instanceof Error) {
+        throw new Error(`Registration failed: ${error.message}`);
+      }
+      throw new Error('An unexpected error occurred during registration');
     }
   };
 
@@ -253,7 +264,9 @@ const Chat = ({ functionCallHandler = () => Promise.resolve("") }: ChatProps) =>
       setInputDisabled(false);
     } else if (signUpStep === "password") {
       try {
+        console.log("Attempting to register user...");
         const newToken = await registerUser(phoneNumber, userInput);
+        console.log("Registration successful, token received");
         setToken(newToken);
         setIsAuthenticated(true);
         localStorage.setItem('token', newToken);
@@ -264,11 +277,12 @@ const Chat = ({ functionCallHandler = () => Promise.resolve("") }: ChatProps) =>
         sendMessage(lastUserMessageBeforeSignUp);
         setUserInput("");
       } catch (error) {
+        console.error("Registration error:", error);
         if (error instanceof Error) {
-          setError(error.message);
+          setError(`Registration failed: ${error.message}`);
           appendMessage("system", `Error: ${error.message}. Please try again.`);
         } else {
-          setError("An unexpected error occurred. Please try again.");
+          setError("An unexpected error occurred during registration. Please try again.");
           appendMessage("system", "An unexpected error occurred. Please try again.");
         }
         setSignUpStep("phone");
@@ -278,23 +292,28 @@ const Chat = ({ functionCallHandler = () => Promise.resolve("") }: ChatProps) =>
       if (userMessageCount === 4) {
         setLastUserMessageBeforeSignUp(userInput);
       }
-      sendMessage(userInput);
-      setMessages(prev => [...prev, { role: "user", text: userInput }]);
-      setUserInput("");
-      setUserMessageCount(prevCount => {
-        const newCount = prevCount + 1;
-        if (newCount === 5) {
-          setSignUpStep("phone");
-          appendMessage("system", "Please provide your phone number to continue the conversation.");
-          setInputDisabled(false);
-        }
-        return newCount;
-      });
+      try {
+        await sendMessage(userInput);
+        setMessages(prev => [...prev, { role: "user", text: userInput }]);
+        setUserInput("");
+        setUserMessageCount(prevCount => {
+          const newCount = prevCount + 1;
+          if (newCount === 5) {
+            setSignUpStep("phone");
+            appendMessage("system", "Please provide your phone number to continue the conversation.");
+            setInputDisabled(false);
+          }
+          return newCount;
+        });
+      } catch (error) {
+        console.error("Error sending message:", error);
+        setError("Failed to send message. Please try again.");
+      }
     }
 
     setShowQuickQuestions(false);
     scrollToBottom();
-  }, [userInput, sendMessage, scrollToBottom, userMessageCount, signUpStep, lastUserMessageBeforeSignUp, phoneNumber]);
+  }, [userInput, sendMessage, scrollToBottom, userMessageCount, signUpStep, lastUserMessageBeforeSignUp, phoneNumber, registerUser]);
 
   const handleQuickQuestionClick = useCallback((question: string) => {
     if (userMessageCount === 4) {
