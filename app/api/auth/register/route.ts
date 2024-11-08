@@ -43,13 +43,22 @@ export async function POST(request: NextRequest) {
 
     // Create new user
     console.log("Creating new user");
-    const result = await sql`
-      INSERT INTO users (phone_number, password)
-      VALUES (${phoneNumber}, ${hashedPassword})
-      RETURNING id, phone_number
-    `;
+    let result;
+    try {
+      result = await sql`
+        INSERT INTO users (phone_number, password)
+        VALUES (${phoneNumber}, ${hashedPassword})
+        RETURNING id, phone_number
+      `;
+    } catch (sqlError) {
+      console.error("SQL Error:", sqlError);
+      return NextResponse.json(
+        { error: 'Database error occurred while creating user' },
+        { status: 500 }
+      );
+    }
 
-    if (result.rows.length === 0) {
+    if (!result || result.rows.length === 0) {
       console.error("User insertion failed: No rows returned");
       return NextResponse.json(
         { error: 'Failed to create user' },
