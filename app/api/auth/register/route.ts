@@ -11,8 +11,7 @@ if (!JWT_SECRET) {
 
 export async function POST(request: NextRequest) {
   try {
-    const body = await request.json();
-    const { phoneNumber, password } = body;
+    const { phoneNumber, password } = await request.json();
 
     console.log("Received registration request for phone number:", phoneNumber);
 
@@ -25,6 +24,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Check if user already exists
+    console.log("Checking if user already exists");
     const existingUser = await sql`
       SELECT * FROM users WHERE phone_number = ${phoneNumber}
     `;
@@ -38,18 +38,29 @@ export async function POST(request: NextRequest) {
     }
 
     // Hash the password
+    console.log("Hashing password");
     const hashedPassword = await bcrypt.hash(password, 12);
 
     // Create new user
+    console.log("Creating new user");
     const result = await sql`
       INSERT INTO users (phone_number, password)
       VALUES (${phoneNumber}, ${hashedPassword})
       RETURNING id, phone_number
     `;
 
+    if (result.rows.length === 0) {
+      console.error("User insertion failed: No rows returned");
+      return NextResponse.json(
+        { error: 'Failed to create user' },
+        { status: 500 }
+      );
+    }
+
     const user = result.rows[0];
 
     // Generate JWT token
+    console.log("Generating JWT token");
     const token = jwt.sign(
       { userId: user.id, phoneNumber: user.phone_number },
       JWT_SECRET,
