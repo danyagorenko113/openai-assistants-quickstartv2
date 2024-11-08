@@ -54,8 +54,14 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ token }, { status: 201 });
   } catch (error) {
     console.error('Registration error:', error);
+    if (error instanceof Error) {
+      return NextResponse.json(
+        { error: `Error creating user: ${error.message}` },
+        { status: 500 }
+      );
+    }
     return NextResponse.json(
-      { error: 'Error creating user' },
+      { error: 'An unexpected error occurred' },
       { status: 500 }
     );
   }
