@@ -1,16 +1,43 @@
 .chatContainer {
   display: flex;
-  flex-direction: column-reverse;
-  height: 100%;
+  flex-direction: column;
+  height: 100vh;
   width: 100%;
+  max-width: 800px;
+  margin: 0 auto;
+}
+
+.messagesContainer {
+  flex-grow: 1;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  padding: 10px;
+}
+
+.quickQuestionsWrapper {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+}
+
+.messages {
+  flex-grow: 1;
+  display: flex;
+  flex-direction: column;
+  white-space: pre-wrap;
+}
+
+.inputContainer {
+  padding: 10px;
+  padding-bottom: 40px;
+  background-color: #fff;
 }
 
 .inputForm {
   display: flex;
   width: 100%;
-  padding: 10px;
-  padding-bottom: 40px;
-  order: 1;
 }
 
 .input {
@@ -35,21 +62,11 @@
   color: white;
   border: none;
   font-size: 1em;
-  border-radius: 60px; /* Removed duplicate border-radius property */
+  border-radius: 60px;
 }
 
 .button:disabled {
   background-color: lightgrey;
-}
-
-.messages {
-  flex-grow: 1;
-  overflow-y: auto;
-  padding: 10px;
-  display: flex;
-  flex-direction: column;
-  order: 2;
-  white-space: pre-wrap;
 }
 
 .userMessage,
