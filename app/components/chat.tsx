@@ -86,8 +86,8 @@ const Chat = ({ functionCallHandler = () => Promise.resolve("") }: ChatProps) =>
         const res = await fetch(`/api/assistants/threads`, { 
           method: "POST",
           headers: {
-            'Authorization': `Bearer ${token}`,
-            'Content-Type': 'application/json'
+            'Content-Type': 'application/json',
+            ...(token && { 'Authorization': `Bearer ${token}` })
           }
         });
         if (!res.ok) {
@@ -99,10 +99,10 @@ const Chat = ({ functionCallHandler = () => Promise.resolve("") }: ChatProps) =>
         console.error('Error creating thread:', error);
       }
     };
-    if (isAuthenticated && !threadId) {
+    if (!threadId) {
       createThread();
     }
-  }, [isAuthenticated, token, threadId]);
+  }, [token, threadId]);
 
   const handleTextCreated = useCallback(() => appendMessage("assistant", ""), []);
 
@@ -160,7 +160,7 @@ const Chat = ({ functionCallHandler = () => Promise.resolve("") }: ChatProps) =>
         method: "POST",
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`
+          ...(token && { 'Authorization': `Bearer ${token}` })
         },
         body: JSON.stringify({ content: text }),
       });
@@ -181,7 +181,7 @@ const Chat = ({ functionCallHandler = () => Promise.resolve("") }: ChatProps) =>
         method: "POST",
         headers: { 
           "Content-Type": "application/json",
-          'Authorization': `Bearer ${token}`
+          ...(token && { 'Authorization': `Bearer ${token}` })
         },
         body: JSON.stringify({ runId, toolCallOutputs }),
       });
@@ -198,23 +198,22 @@ const Chat = ({ functionCallHandler = () => Promise.resolve("") }: ChatProps) =>
 
   const handleSubmit = useCallback((e: React.FormEvent) => {
     e.preventDefault();
-    if (!userInput.trim() || !isAuthenticated) return;
+    if (!userInput.trim()) return;
     sendMessage(userInput);
     setMessages(prev => [...prev, { role: "user", text: userInput }]);
     setUserInput("");
     setInputDisabled(true);
     setShowQuickQuestions(false);
     scrollToBottom();
-  }, [userInput, sendMessage, scrollToBottom, isAuthenticated]);
+  }, [userInput, sendMessage, scrollToBottom]);
 
   const handleQuickQuestionClick = useCallback((question: string) => {
-    if (!isAuthenticated) return;
     sendMessage(question);
     setMessages(prev => [...prev, { role: "user", text: question }]);
     setInputDisabled(true);
     setShowQuickQuestions(false);
     scrollToBottom();
-  }, [sendMessage, scrollToBottom, isAuthenticated]);
+  }, [sendMessage, scrollToBottom]);
 
   const appendToLastMessage = useCallback((text: string) => {
     setMessages(prev => {
@@ -255,10 +254,6 @@ const Chat = ({ functionCallHandler = () => Promise.resolve("") }: ChatProps) =>
     setShowLoginForm(true);
   }, []);
 
-  if (showLoginForm) {
-    return <Login onLogin={handleLogin} onClose={() => setShowLoginForm(false)} />;
-  }
-
   return (
     <div className={styles.chatContainer} ref={chatContainerRef}>
       <div className={styles.messagesContainer}>
@@ -283,14 +278,18 @@ const Chat = ({ functionCallHandler = () => Promise.resolve("") }: ChatProps) =>
             value={userInput}
             onChange={(e) => setUserInput(e.target.value)}
             placeholder="Enter your question"
-            disabled={inputDisabled || !isAuthenticated}
+            disabled={inputDisabled}
           />
-          <button type="submit" className={styles.button} disabled={inputDisabled || !isAuthenticated}>
+          <button type="submit" className={styles.button} disabled={inputDisabled}>
             Send
           </button>
         </form>
       </div>
-      {!isAuthenticated && <LoginIcon onClick={handleLoginIconClick} />}
+      {showLoginForm ? (
+        <Login onLogin={handleLogin} onClose={() => setShowLoginForm(false)} />
+      ) : (
+        <LoginIcon onClick={handleLoginIconClick} />
+      )}
     </div>
   );
 };
