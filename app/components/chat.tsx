@@ -13,7 +13,7 @@ import Login from "./Login";
 import LoginIcon from "./LoginIcon";
 
 type MessageProps = {
-  role: "user" | "assistant" | "code";
+  role: "user" | "assistant" | "code" | "system";
   text: string;
 };
 
@@ -38,11 +38,16 @@ const CodeMessage = React.memo(({ text }: { text: string }) => (
   </div>
 ));
 
+const SystemMessage = React.memo(({ text }: { text: string }) => (
+  <div className={styles.systemMessage}>{text}</div>
+));
+
 const Message = React.memo(({ role, text }: MessageProps) => {
   switch (role) {
     case "user": return <UserMessage text={text} />;
     case "assistant": return <AssistantMessage text={text} />;
     case "code": return <CodeMessage text={text} />;
+    case "system": return <SystemMessage text={text} />;
     default: return null;
   }
 });
@@ -60,6 +65,10 @@ const Chat = ({ functionCallHandler = () => Promise.resolve("") }: ChatProps) =>
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [showLoginForm, setShowLoginForm] = useState(false);
   const [token, setToken] = useState("");
+  const [userMessageCount, setUserMessageCount] = useState(0);
+  const [signUpStep, setSignUpStep] = useState<"none" | "phone" | "password">("none");
+  const [phoneNumber, setPhoneNumber] = useState("");
+  const [lastUserMessageBeforeSignUp, setLastUserMessageBeforeSignUp] = useState("");
 
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const chatContainerRef = useRef<HTMLDivElement>(null);
@@ -199,21 +208,59 @@ const Chat = ({ functionCallHandler = () => Promise.resolve("") }: ChatProps) =>
   const handleSubmit = useCallback((e: React.FormEvent) => {
     e.preventDefault();
     if (!userInput.trim()) return;
-    sendMessage(userInput);
-    setMessages(prev => [...prev, { role: "user", text: userInput }]);
+
+    if (signUpStep === "phone") {
+      setPhoneNumber(userInput);
+      setSignUpStep("password");
+      appendMessage("system", "Thank you! Please write password to save your conversation.");
+      setUserInput("");
+    } else if (signUpStep === "password") {
+      // Here you would typically send a request to your backend to register the user
+      // For this example, we'll just simulate a successful registration
+      setIsAuthenticated(true);
+      setSignUpStep("none");
+      appendMessage("system", "Thank you! Your password has been successfully created.");
+      sendMessage(lastUserMessageBeforeSignUp);
+    } else {
+      if (userMessageCount === 4) {
+        setLastUserMessageBeforeSignUp(userInput);
+      }
+      sendMessage(userInput);
+      setMessages(prev => [...prev, { role: "user", text: userInput }]);
+      setUserMessageCount(prevCount => {
+        const newCount = prevCount + 1;
+        if (newCount === 5) {
+          setSignUpStep("phone");
+          appendMessage("system", "Please provide your phone number to continue the conversation.");
+        }
+        return newCount;
+      });
+    }
+
     setUserInput("");
     setInputDisabled(true);
     setShowQuickQuestions(false);
     scrollToBottom();
-  }, [userInput, sendMessage, scrollToBottom]);
+  }, [userInput, sendMessage, scrollToBottom, userMessageCount, signUpStep, lastUserMessageBeforeSignUp]);
 
   const handleQuickQuestionClick = useCallback((question: string) => {
+    if (userMessageCount === 4) {
+      setLastUserMessageBeforeSignUp(question);
+    }
     sendMessage(question);
     setMessages(prev => [...prev, { role: "user", text: question }]);
+    setUserMessageCount(prevCount => {
+      const newCount = prevCount + 1;
+      if (newCount === 5) {
+        setSignUpStep("phone");
+        appendMessage("system", "Please provide your phone number to continue the conversation.");
+      }
+      return newCount;
+    });
     setInputDisabled(true);
     setShowQuickQuestions(false);
     scrollToBottom();
-  }, [sendMessage, scrollToBottom]);
+  }, [sendMessage, scrollToBottom, userMessageCount]);
 
   const appendToLastMessage = useCallback((text: string) => {
     setMessages(prev => {
@@ -223,7 +270,7 @@ const Chat = ({ functionCallHandler = () => Promise.resolve("") }: ChatProps) =>
     });
   }, []);
 
-  const appendMessage = useCallback((role: "user" | "assistant" | "code", text: string) => {
+  const appendMessage = useCallback((role: "user" | "assistant" | "code" | "system", text: string) => {
     setMessages(prev => [...prev, { role, text }]);
   }, []);
 
@@ -254,6 +301,21 @@ const Chat = ({ functionCallHandler = () => Promise.resolve("") }: ChatProps) =>
     setShowLoginForm(true);
   }, []);
 
+  const formatPhoneNumber = (value: string) => {
+    const phoneNumber = value.replace(/[^\d]/g, '');
+    const phoneNumberLength = phoneNumber.length;
+    if (phoneNumberLength < 4) return phoneNumber;
+    if (phoneNumberLength < 7) {
+      return `(${phoneNumber.slice(0, 3)}) ${phoneNumber.slice(3)}`;
+    }
+    return `(${phoneNumber.slice(0, 3)}) ${phoneNumber.slice(3, 6)}-${phoneNumber.slice(6, 10)}`;
+  };
+
+  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const formattedInput = signUpStep === "phone" ? formatPhoneNumber(e.target.value) : e.target.value;
+    setUserInput(formattedInput);
+  };
+
   return (
     <div className={styles.chatContainer} ref={chatContainerRef}>
       <div className={styles.messagesContainer}>
@@ -273,11 +335,17 @@ const Chat = ({ functionCallHandler = () => Promise.resolve("") }: ChatProps) =>
       <div className={styles.inputContainer}>
         <form onSubmit={handleSubmit} className={styles.inputForm}>
           <input
-            type="text"
+            type={signUpStep === "password" ? "password" : signUpStep === "phone" ? "tel" : "text"}
             className={styles.input}
             value={userInput}
-            onChange={(e) => setUserInput(e.target.value)}
-            placeholder="Enter your question"
+            onChange={handleInputChange}
+            placeholder={
+              signUpStep === "phone" 
+                ? "Enter your phone number" 
+                : signUpStep === "password" 
+                  ? "Enter your password" 
+                  : "Enter your question"
+            }
             disabled={inputDisabled}
           />
           <button type="submit" className={styles.button} disabled={inputDisabled}>
