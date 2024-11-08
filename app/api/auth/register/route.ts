@@ -3,11 +3,22 @@ import { sql } from '@vercel/postgres';
 import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
 
-const JWT_SECRET = process.env.JWT_SECRET || 'your-secret-key';
+const JWT_SECRET = process.env.JWT_SECRET;
+
+if (!JWT_SECRET) {
+  throw new Error('JWT_SECRET is not set in environment variables');
+}
 
 export async function POST(request: NextRequest) {
   try {
     const { phoneNumber, password } = await request.json();
+
+    if (!phoneNumber || !password) {
+      return NextResponse.json(
+        { error: 'Phone number and password are required' },
+        { status: 400 }
+      );
+    }
 
     // Check if user already exists
     const existingUser = await sql`
@@ -22,7 +33,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Hash the password
-    const hashedPassword = await bcrypt.hash(password, 10);
+    const hashedPassword = await bcrypt.hash(password, 12);
 
     // Create new user
     const result = await sql`
