@@ -15,10 +15,13 @@ import LoginIcon from "./LoginIcon";
 type MessageProps = {
   role: "user" | "assistant" | "code" | "system";
   text: string;
+  isPassword?: boolean;
 };
 
-const UserMessage = React.memo(({ text }: { text: string }) => (
-  <div className={styles.userMessage}>{text}</div>
+const UserMessage = React.memo(({ text, isPassword }: { text: string; isPassword?: boolean }) => (
+  <div className={styles.userMessage}>
+    {isPassword ? text.replace(/./g, '*') : text}
+  </div>
 ));
 
 const AssistantMessage = React.memo(({ text }: { text: string }) => (
@@ -44,9 +47,9 @@ const SystemMessage = React.memo(({ text }: { text: string }) => (
   </div>
 ));
 
-const Message = React.memo(({ role, text }: MessageProps) => {
+const Message = React.memo(({ role, text, isPassword }: MessageProps) => {
   switch (role) {
-    case "user": return <UserMessage text={text} />;
+    case "user": return <UserMessage text={text} isPassword={isPassword} />;
     case "assistant": return <AssistantMessage text={text} />;
     case "code": return <CodeMessage text={text} />;
     case "system": return <SystemMessage text={text} />;
@@ -207,7 +210,29 @@ const Chat = ({ functionCallHandler = () => Promise.resolve("") }: ChatProps) =>
     }
   }, [threadId, handleReadableStream, token]);
 
-  const handleSubmit = useCallback((e: React.FormEvent) => {
+  const registerUser = async (phoneNumber: string, password: string) => {
+    try {
+      const response = await fetch('/api/register', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ phoneNumber, password }),
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to register user');
+      }
+
+      const data = await response.json();
+      return data.token;
+    } catch (error) {
+      console.error('Error registering user:', error);
+      throw error;
+    }
+  };
+
+  const handleSubmit = useCallback(async (e: React.FormEvent) => {
     e.preventDefault();
     if (!userInput.trim()) return;
 
@@ -215,16 +240,25 @@ const Chat = ({ functionCallHandler = () => Promise.resolve("") }: ChatProps) =>
       setPhoneNumber(userInput);
       setSignUpStep("password");
       appendMessage("system", "Thank you! Please write a password to save your conversation.");
+      appendMessage("user", userInput);
       setUserInput("");
       setInputDisabled(false);
     } else if (signUpStep === "password") {
-      // Here you would typically send a request to your backend to register the user
-      // For this example, we'll just simulate a successful registration
-      setIsAuthenticated(true);
-      setSignUpStep("none");
-      appendMessage("system", "Thank you! Your password has been successfully created.");
-      sendMessage(lastUserMessageBeforeSignUp);
-      setUserInput("");
+      try {
+        const newToken = await registerUser(phoneNumber, userInput);
+        setToken(newToken);
+        setIsAuthenticated(true);
+        localStorage.setItem('token', newToken);
+        
+        setSignUpStep("none");
+        appendMessage("user", userInput, true);
+        appendMessage("system", "Thank you! Your account has been successfully created.");
+        sendMessage(lastUserMessageBeforeSignUp);
+        setUserInput("");
+      } catch (error) {
+        console.error('Failed to register user:', error);
+        appendMessage("system", "Sorry, there was an error creating your account. Please try again.");
+      }
     } else {
       if (userMessageCount === 4) {
         setLastUserMessageBeforeSignUp(userInput);
@@ -245,7 +279,7 @@ const Chat = ({ functionCallHandler = () => Promise.resolve("") }: ChatProps) =>
 
     setShowQuickQuestions(false);
     scrollToBottom();
-  }, [userInput, sendMessage, scrollToBottom, userMessageCount, signUpStep, lastUserMessageBeforeSignUp]);
+  }, [userInput, sendMessage, scrollToBottom, userMessageCount, signUpStep, lastUserMessageBeforeSignUp, phoneNumber]);
 
   const handleQuickQuestionClick = useCallback((question: string) => {
     if (userMessageCount === 4) {
@@ -274,8 +308,8 @@ const Chat = ({ functionCallHandler = () => Promise.resolve("") }: ChatProps) =>
     });
   }, []);
 
-  const appendMessage = useCallback((role: "user" | "assistant" | "code" | "system", text: string) => {
-    setMessages(prev => [...prev, { role, text }]);
+  const appendMessage = useCallback((role: "user" | "assistant" | "code" | "system", text: string, isPassword: boolean = false) => {
+    setMessages(prev => [...prev, { role, text, isPassword }]);
   }, []);
 
   const annotateLastMessage = useCallback((annotations: Array<{ type: string; text: string; file_path?: { file_id: string } }>) => {
@@ -330,7 +364,7 @@ const Chat = ({ functionCallHandler = () => Promise.resolve("") }: ChatProps) =>
         ) : (
           <div className={styles.messages}>
             {messages.map((msg, index) => (
-              <Message key={index} role={msg.role} text={msg.text} />
+              <Message key={index} role={msg.role} text={msg.text} isPassword={msg.isPassword} />
             ))}
             <div ref={messagesEndRef} />
           </div>
