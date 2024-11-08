@@ -238,36 +238,43 @@ const Chat = ({
   };
 
   return (
-    <div className={styles.chatContainer}>
-      {showQuickQuestions && messages.length === 0 && (
-        <QuickQuestions onQuestionClick={handleQuickQuestionClick} />
-      )}
-      <div className={styles.messages}>
-        {messages.map((msg, index) => (
-          <Message key={index} role={msg.role} text={msg.text} />
-        ))}
-        <div ref={messagesEndRef} />
+    <div className={`${styles.chatContainer} flex flex-col h-screen`}>
+      <div className="flex-grow overflow-auto p-4">
+        {showQuickQuestions && messages.length === 0 ? (
+          <div className="flex items-center justify-center h-full">
+            <QuickQuestions onQuestionClick={handleQuickQuestionClick} />
+          </div>
+        ) : (
+          <div className={styles.messages}>
+            {messages.map((msg, index) => (
+              <Message key={index} role={msg.role} text={msg.text} />
+            ))}
+            <div ref={messagesEndRef} />
+          </div>
+        )}
       </div>
-      <form
-        onSubmit={handleSubmit}
-        className={`${styles.inputForm} ${styles.clearfix}`}
-      >
-        <input
-          type="text"
-          className={styles.input}
-          value={userInput}
-          onChange={(e) => setUserInput(e.target.value)}
-          placeholder="Enter your question"
-          disabled={inputDisabled}
-        />
-        <button
-          type="submit"
-          className={styles.button}
-          disabled={inputDisabled}
+      <div className="p-4">
+        <form
+          onSubmit={handleSubmit}
+          className={`${styles.inputForm} ${styles.clearfix}`}
         >
-          Send
-        </button>
-      </form>
+          <input
+            type="text"
+            className={styles.input}
+            value={userInput}
+            onChange={(e) => setUserInput(e.target.value)}
+            placeholder="Enter your question"
+            disabled={inputDisabled}
+          />
+          <button
+            type="submit"
+            className={styles.button}
+            disabled={inputDisabled}
+          >
+            Send
+          </button>
+        </form>
+      </div>
     </div>
   );
 };
