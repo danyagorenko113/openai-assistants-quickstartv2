@@ -57,6 +57,7 @@ const Chat = ({ functionCallHandler = () => Promise.resolve("") }: ChatProps) =>
   const [showQuickQuestions, setShowQuickQuestions] = useState(true);
 
   const messagesEndRef = useRef<HTMLDivElement | null>(null);
+  const chatContainerRef = useRef<HTMLDivElement | null>(null);
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -188,10 +189,10 @@ const Chat = ({ functionCallHandler = () => Promise.resolve("") }: ChatProps) =>
   };
 
   return (
-    <div className={`${styles.chatContainer} flex flex-col h-screen`}>
-      <div className="flex-grow overflow-auto p-4">
+    <div className={styles.chatContainer} ref={chatContainerRef}>
+      <div className={styles.messagesContainer}>
         {showQuickQuestions && messages.length === 0 ? (
-          <div className="flex items-center justify-center h-full">
+          <div className={styles.quickQuestionsWrapper}>
             <QuickQuestions onQuestionClick={handleQuickQuestionClick} />
           </div>
         ) : (
@@ -203,8 +204,8 @@ const Chat = ({ functionCallHandler = () => Promise.resolve("") }: ChatProps) =>
           </div>
         )}
       </div>
-      <div className="p-4">
-        <form onSubmit={handleSubmit} className={`${styles.inputForm} ${styles.clearfix}`}>
+      <div className={styles.inputContainer}>
+        <form onSubmit={handleSubmit} className={styles.inputForm}>
           <input
             type="text"
             className={styles.input}
