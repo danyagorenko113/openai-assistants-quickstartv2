@@ -7,36 +7,12 @@ import Markdown from "react-markdown";
 // @ts-expect-error - no types for this yet
 import { AssistantStreamEvent } from "openai/resources/beta/assistants/assistants";
 import { RequiredActionFunctionToolCall } from "openai/resources/beta/threads/runs/runs";
+import type { CodeInterpreterToolCallDelta, ToolCall } from "openai/resources/beta/threads/runs/steps";
 import QuickQuestions from "./QuickQuestions";
 
 type MessageProps = {
   role: "user" | "assistant" | "code";
   text: string;
-};
-
-type CodeInterpreter = {
-  input?: string;
-  outputs?: Array<{
-    type: string;
-    text?: string;
-    image?: {
-      file_id: string;
-    };
-  }>;
-};
-
-type CodeInterpreterToolCallDelta = {
-  type: "code_interpreter";
-  code_interpreter: {
-    input: string;
-  };
-};
-
-type ToolCallDelta = CodeInterpreterToolCallDelta;
-
-type ToolCall = {
-  type: "code_interpreter";
-  code_interpreter: CodeInterpreter;
 };
 
 const UserMessage = ({ text }: { text: string }) => {
