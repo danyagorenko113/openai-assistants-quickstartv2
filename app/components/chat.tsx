@@ -86,6 +86,66 @@ const Chat = ({
     createThread();
   }, []);
 
+  const handleTextCreated = () => {
+    appendMessage("assistant", "");
+  };
+
+  const handleTextDelta = (delta: { value: string | null; annotations: any[] | null }) => {
+    if (delta.value != null) {
+      appendToLastMessage(delta.value);
+    }
+    if (delta.annotations != null) {
+      annotateLastMessage(delta.annotations);
+    }
+  };
+
+  const handleImageFileDone = (image: { file_id: string }) => {
+    appendToLastMessage(`\n![${image.file_id}](/api/files/${image.file_id})\n`);
+  };
+
+  const toolCallCreated = (toolCall: { type: string }) => {
+    if (toolCall.type !== "code_interpreter") return;
+    appendMessage("code", "");
+  };
+
+  const toolCallDelta = (delta: { type: string; code_interpreter?: { input: string } }, snapshot: any) => {
+    if (delta.type !== "code_interpreter") return;
+    if (!delta.code_interpreter?.input) return;
+    appendToLastMessage(delta.code_interpreter.input);
+  };
+
+  const handleRequiresAction = async (
+    event: AssistantStreamEvent.ThreadRunRequiresAction
+  ) => {
+    const runId = event.data.id;
+    const toolCalls = event.data.required_action.submit_tool_outputs.tool_calls;
+    const toolCallOutputs = await Promise.all(
+      toolCalls.map(async (toolCall) => {
+        const result = await functionCallHandler(toolCall);
+        return { output: result, tool_call_id: toolCall.id };
+      })
+    );
+    setInputDisabled(true);
+    submitActionResult(runId, toolCallOutputs);
+  };
+
+  const handleRunCompleted = () => {
+    setInputDisabled(false);
+  };
+
+  const handleReadableStream = (stream: AssistantStream) => {
+    stream.on("textCreated", handleTextCreated);
+    stream.on("textDelta", handleTextDelta);
+    stream.on("imageFileDone", handleImageFileDone);
+    stream.on("toolCallCreated", toolCallCreated);
+    stream.on("toolCallDelta", toolCallDelta);
+    stream.on("event", (event: any) => {
+      if (event.event === "thread.run.requires_action")
+        handleRequiresAction(event);
+      if (event.event === "thread.run.completed") handleRunCompleted();
+    });
+  };
+
   const sendMessage = async (text: string) => {
     const response = await fetch(
       `/api/assistants/threads/${threadId}/messages`,
@@ -143,7 +203,38 @@ const Chat = ({
     scrollToBottom();
   };
 
-  // ... (keep all existing event handlers and utility functions)
+  const appendToLastMessage = (text: string) => {
+    setMessages((prevMessages) => {
+      const lastMessage = prevMessages[prevMessages.length - 1];
+      const updatedLastMessage = {
+        ...lastMessage,
+        text: lastMessage.text + text,
+      };
+      return [...prevMessages.slice(0, -1), updatedLastMessage];
+    });
+  };
+
+  const appendMessage = (role: "user" | "assistant" | "code", text: string) => {
+    setMessages((prevMessages) => [...prevMessages, { role, text }]);
+  };
+
+  const annotateLastMessage = (annotations: Array<{ type: string; text: string; file_path?: { file_id: string } }>) => {
+    setMessages((prevMessages) => {
+      const lastMessage = prevMessages[prevMessages.length - 1];
+      const updatedLastMessage = {
+        ...lastMessage,
+      };
+      annotations.forEach((annotation) => {
+        if (annotation.type === 'file_path' && annotation.file_path) {
+          updatedLastMessage.text = updatedLastMessage.text.replaceAll(
+            annotation.text,
+            `/api/files/${annotation.file_path.file_id}`
+          );
+        }
+      })
+      return [...prevMessages.slice(0, -1), updatedLastMessage];
+    });
+  };
 
   return (
     <div className={styles.chatContainer}>
