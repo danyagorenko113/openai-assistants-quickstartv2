@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect, useRef } from "react";
+import React, { useState, useEffect, useRef, useCallback } from "react";
 import styles from "./chat.module.css";
 import { AssistantStream } from "openai/lib/AssistantStream";
 import Markdown from "react-markdown";
@@ -15,17 +15,17 @@ type MessageProps = {
   text: string;
 };
 
-const UserMessage = ({ text }: { text: string }) => (
+const UserMessage = React.memo(({ text }: { text: string }) => (
   <div className={styles.userMessage}>{text}</div>
-);
+));
 
-const AssistantMessage = ({ text }: { text: string }) => (
+const AssistantMessage = React.memo(({ text }: { text: string }) => (
   <div className={styles.assistantMessage}>
     <Markdown>{text}</Markdown>
   </div>
-);
+));
 
-const CodeMessage = ({ text }: { text: string }) => (
+const CodeMessage = React.memo(({ text }: { text: string }) => (
   <div className={styles.codeMessage}>
     {text.split("\n").map((line, index) => (
       <div key={index}>
@@ -34,16 +34,16 @@ const CodeMessage = ({ text }: { text: string }) => (
       </div>
     ))}
   </div>
-);
+));
 
-const Message = ({ role, text }: MessageProps) => {
+const Message = React.memo(({ role, text }: MessageProps) => {
   switch (role) {
     case "user": return <UserMessage text={text} />;
     case "assistant": return <AssistantMessage text={text} />;
     case "code": return <CodeMessage text={text} />;
     default: return null;
   }
-};
+});
 
 type ChatProps = {
   functionCallHandler?: (toolCall: RequiredActionFunctionToolCall) => Promise<string>;
@@ -56,16 +56,16 @@ const Chat = ({ functionCallHandler = () => Promise.resolve("") }: ChatProps) =>
   const [threadId, setThreadId] = useState("");
   const [showQuickQuestions, setShowQuickQuestions] = useState(true);
 
-  const messagesEndRef = useRef<HTMLDivElement | null>(null);
-  const chatContainerRef = useRef<HTMLDivElement | null>(null);
+  const messagesEndRef = useRef<HTMLDivElement>(null);
+  const chatContainerRef = useRef<HTMLDivElement>(null);
 
-  const scrollToBottom = () => {
+  const scrollToBottom = useCallback(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
-  };
+  }, []);
 
   useEffect(() => {
     scrollToBottom();
-  }, [messages]);
+  }, [messages, scrollToBottom]);
 
   useEffect(() => {
     const createThread = async () => {
@@ -76,28 +76,28 @@ const Chat = ({ functionCallHandler = () => Promise.resolve("") }: ChatProps) =>
     createThread();
   }, []);
 
-  const handleTextCreated = () => appendMessage("assistant", "");
+  const handleTextCreated = useCallback(() => appendMessage("assistant", ""), []);
 
-  const handleTextDelta = (delta: { value: string | null; annotations: any[] | null }) => {
+  const handleTextDelta = useCallback((delta: { value: string | null; annotations: any[] | null }) => {
     if (delta.value != null) appendToLastMessage(delta.value);
     if (delta.annotations != null) annotateLastMessage(delta.annotations);
-  };
+  }, []);
 
-  const handleImageFileDone = (image: { file_id: string }) => {
+  const handleImageFileDone = useCallback((image: { file_id: string }) => {
     appendToLastMessage(`\n![${image.file_id}](/api/files/${image.file_id})\n`);
-  };
+  }, []);
 
-  const toolCallCreated = (toolCall: { type: string }) => {
+  const toolCallCreated = useCallback((toolCall: { type: string }) => {
     if (toolCall.type === "code_interpreter") appendMessage("code", "");
-  };
+  }, []);
 
-  const toolCallDelta = (delta: CodeInterpreterToolCallDelta, snapshot: ToolCall) => {
+  const toolCallDelta = useCallback((delta: CodeInterpreterToolCallDelta, snapshot: ToolCall) => {
     if (delta.type === "code_interpreter" && delta.code_interpreter?.input) {
       appendToLastMessage(delta.code_interpreter.input);
     }
-  };
+  }, []);
 
-  const handleRequiresAction = async (event: AssistantStreamEvent.ThreadRunRequiresAction) => {
+  const handleRequiresAction = useCallback(async (event: AssistantStreamEvent.ThreadRunRequiresAction) => {
     const runId = event.data.id;
     const toolCalls = event.data.required_action.submit_tool_outputs.tool_calls;
     const toolCallOutputs = await Promise.all(
@@ -108,9 +108,9 @@ const Chat = ({ functionCallHandler = () => Promise.resolve("") }: ChatProps) =>
     );
     setInputDisabled(true);
     submitActionResult(runId, toolCallOutputs);
-  };
+  }, [functionCallHandler]);
 
-  const handleReadableStream = (stream: AssistantStream) => {
+  const handleReadableStream = useCallback((stream: AssistantStream) => {
     stream.on("textCreated", handleTextCreated);
     stream.on("textDelta", handleTextDelta);
     stream.on("imageFileDone", handleImageFileDone);
@@ -120,18 +120,18 @@ const Chat = ({ functionCallHandler = () => Promise.resolve("") }: ChatProps) =>
       if (event.event === "thread.run.requires_action") handleRequiresAction(event);
       if (event.event === "thread.run.completed") setInputDisabled(false);
     });
-  };
+  }, [handleTextCreated, handleTextDelta, handleImageFileDone, toolCallCreated, toolCallDelta, handleRequiresAction]);
 
-  const sendMessage = async (text: string) => {
+  const sendMessage = useCallback(async (text: string) => {
     const response = await fetch(`/api/assistants/threads/${threadId}/messages`, {
       method: "POST",
       body: JSON.stringify({ content: text }),
     });
     const stream = AssistantStream.fromReadableStream(response.body);
     handleReadableStream(stream);
-  };
+  }, [threadId, handleReadableStream]);
 
-  const submitActionResult = async (runId: string, toolCallOutputs: any[]) => {
+  const submitActionResult = useCallback(async (runId: string, toolCallOutputs: any[]) => {
     const response = await fetch(`/api/assistants/threads/${threadId}/actions`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -139,9 +139,9 @@ const Chat = ({ functionCallHandler = () => Promise.resolve("") }: ChatProps) =>
     });
     const stream = AssistantStream.fromReadableStream(response.body);
     handleReadableStream(stream);
-  };
+  }, [threadId, handleReadableStream]);
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = useCallback((e: React.FormEvent) => {
     e.preventDefault();
     if (!userInput.trim()) return;
     sendMessage(userInput);
@@ -150,29 +150,29 @@ const Chat = ({ functionCallHandler = () => Promise.resolve("") }: ChatProps) =>
     setInputDisabled(true);
     setShowQuickQuestions(false);
     scrollToBottom();
-  };
+  }, [userInput, sendMessage, scrollToBottom]);
 
-  const handleQuickQuestionClick = (question: string) => {
+  const handleQuickQuestionClick = useCallback((question: string) => {
     sendMessage(question);
     setMessages(prev => [...prev, { role: "user", text: question }]);
     setInputDisabled(true);
     setShowQuickQuestions(false);
     scrollToBottom();
-  };
+  }, [sendMessage, scrollToBottom]);
 
-  const appendToLastMessage = (text: string) => {
+  const appendToLastMessage = useCallback((text: string) => {
     setMessages(prev => {
       const lastMessage = prev[prev.length - 1];
       const updatedLastMessage = { ...lastMessage, text: lastMessage.text + text };
       return [...prev.slice(0, -1), updatedLastMessage];
     });
-  };
+  }, []);
 
-  const appendMessage = (role: "user" | "assistant" | "code", text: string) => {
+  const appendMessage = useCallback((role: "user" | "assistant" | "code", text: string) => {
     setMessages(prev => [...prev, { role, text }]);
-  };
+  }, []);
 
-  const annotateLastMessage = (annotations: Array<{ type: string; text: string; file_path?: { file_id: string } }>) => {
+  const annotateLastMessage = useCallback((annotations: Array<{ type: string; text: string; file_path?: { file_id: string } }>) => {
     setMessages(prev => {
       const lastMessage = prev[prev.length - 1];
       const updatedLastMessage = { ...lastMessage };
@@ -186,7 +186,7 @@ const Chat = ({ functionCallHandler = () => Promise.resolve("") }: ChatProps) =>
       });
       return [...prev.slice(0, -1), updatedLastMessage];
     });
-  };
+  }, []);
 
   return (
     <div className={styles.chatContainer} ref={chatContainerRef}>
