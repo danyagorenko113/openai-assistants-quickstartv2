@@ -11,9 +11,13 @@ if (!JWT_SECRET) {
 
 export async function POST(request: NextRequest) {
   try {
-    const { phoneNumber, password } = await request.json();
+    const body = await request.json();
+    const { phoneNumber, password } = body;
+
+    console.log("Received registration request for phone number:", phoneNumber);
 
     if (!phoneNumber || !password) {
+      console.log("Missing phone number or password");
       return NextResponse.json(
         { error: 'Phone number and password are required' },
         { status: 400 }
@@ -26,6 +30,7 @@ export async function POST(request: NextRequest) {
     `;
 
     if (existingUser.rows.length > 0) {
+      console.log("User already exists");
       return NextResponse.json(
         { error: 'User with this phone number already exists' },
         { status: 400 }
@@ -51,6 +56,7 @@ export async function POST(request: NextRequest) {
       { expiresIn: '24h' }
     );
 
+    console.log("User registered successfully");
     return NextResponse.json({ token }, { status: 201 });
   } catch (error) {
     console.error('Registration error:', error);
