@@ -1,10 +1,9 @@
-import { Roboto } from "next/font/google";
+import { Inter } from "next/font/google";
 import "./globals.css";
 import Warnings from "./components/warnings";
 import { assistantId } from "./assistant-config";
 
-const roboto = Roboto({ 
-  weight: ['300', '400', '500', '700'],
+const inter = Inter({ 
   subsets: ["latin"],
   display: 'swap',
 });
@@ -25,7 +24,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         <meta name="viewport" content="width=device-width, initial-scale=1" />
         <link rel="icon" href="/openai.svg" />
       </head>
-      <body className={roboto.className}>
+      <body className={inter.className}>
         <main>
           {assistantId ? children : <Warnings />}
         </main>
