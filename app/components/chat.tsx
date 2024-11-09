@@ -259,9 +259,14 @@ const Chat = ({ functionCallHandler = () => Promise.resolve("") }: ChatProps) =>
     }
   };
 
-  const validatePhoneNumber = (phoneNumber: string) => {
-    const phoneRegex = /^$$\d{3}$$\s\d{3}-\d{4}$/;
-    return phoneRegex.test(phoneNumber);
+  const formatPhoneNumber = (value: string) => {
+    const phoneNumber = value.replace(/\D/g, '');
+    const phoneNumberLength = phoneNumber.length;
+    if (phoneNumberLength < 4) return phoneNumber;
+    if (phoneNumberLength < 7) {
+      return `(${phoneNumber.slice(0, 3)}) ${phoneNumber.slice(3)}`;
+    }
+    return `(${phoneNumber.slice(0, 3)}) ${phoneNumber.slice(3, 6)}-${phoneNumber.slice(6, 10)}`;
   };
 
   const handleSubmit = useCallback(async (e: React.FormEvent) => {
@@ -271,8 +276,9 @@ const Chat = ({ functionCallHandler = () => Promise.resolve("") }: ChatProps) =>
     setError(null);
 
     if (signUpStep === "phone") {
-      if (!validatePhoneNumber(userInput)) {
-        setError("Invalid phone number format. Please use (XXX) XXX-XXXX format.");
+      const digitsOnly = userInput.replace(/\D/g, '');
+      if (digitsOnly.length !== 9) {
+        setError("Please enter a 9-digit phone number.");
         return;
       }
       setPhoneNumber(userInput);
@@ -390,16 +396,6 @@ const Chat = ({ functionCallHandler = () => Promise.resolve("") }: ChatProps) =>
   const handleLoginIconClick = useCallback(() => {
     setShowLoginForm(true);
   }, []);
-
-  const formatPhoneNumber = (value: string) => {
-    const phoneNumber = value.replace(/[^\d]/g, '');
-    const phoneNumberLength = phoneNumber.length;
-    if (phoneNumberLength < 4) return phoneNumber;
-    if (phoneNumberLength < 7) {
-      return `(${phoneNumber.slice(0, 3)}) ${phoneNumber.slice(3)}`;
-    }
-    return `(${phoneNumber.slice(0, 3)}) ${phoneNumber.slice(3, 6)}-${phoneNumber.slice(6, 10)}`;
-  };
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const formattedInput = signUpStep === "phone" ? formatPhoneNumber(e.target.value) : e.target.value;
