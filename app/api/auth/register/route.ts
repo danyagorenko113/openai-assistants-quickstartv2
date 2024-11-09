@@ -21,7 +21,7 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Validate phone number format (you can adjust the regex as needed)
+    // Validate phone number format
     const phoneRegex = /^$$\d{3}$$\s\d{3}-\d{4}$/;
     if (!phoneRegex.test(phoneNumber)) {
       console.log('Invalid phone number format');
