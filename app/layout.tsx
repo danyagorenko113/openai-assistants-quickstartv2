@@ -3,10 +3,10 @@ import Warnings from "./components/warnings";
 import { assistantId } from "./assistant-config";
 
 export const metadata = {
-  title: "Assistants API Quickstart",
-  description: "A quickstart template using the Assistants API with OpenAI",
+  title: "Hospital for Special Surgery Virtual Assistant",
+  description: "A virtual assistant for Hospital for Special Surgery using the OpenAI Assistants API",
   icons: {
-    icon: "/openai.svg",
+    icon: "/HSS_logo.png",
   },
 };
 
@@ -15,14 +15,16 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
     <html lang="en">
       <head>
         <meta charSet="utf-8" />
-        <meta name="viewport" content="width=device-width, initial-scale=1" />
-        <link rel="icon" href="/openai.svg" />
+        <meta 
+          name="viewport" 
+          content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover"
+        />
+        <link rel="icon" href="/HSS_logo.png" />
       </head>
       <body>
         <main>
           {assistantId ? children : <Warnings />}
         </main>
-        <img className="logo" src="/openai.svg" alt="OpenAI Logo" />
       </body>
     </html>
   );
