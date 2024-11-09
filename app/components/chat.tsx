@@ -415,8 +415,24 @@ const Chat = ({ functionCallHandler = () => Promise.resolve("") }: ChatProps) =>
           </div>
         ) : (
           <div className={styles.messages}>
-            {messages.map((msg, index) => (
-              <Message key={index} role={msg.role} text={msg.text} isPassword={msg.isPassword} />
+            {messages.reduce((groups, message, index) => {
+              if (index === 0 || messages[index - 1].role !== message.role) {
+                groups.push([message]);
+              } else {
+                groups[groups.length - 1].push(message);
+              }
+              return groups;
+            }, [] as MessageProps[][]).map((group, groupIndex) => (
+              <div key={groupIndex} className={styles.messageGroup}>
+                {group.map((msg, msgIndex) => (
+                  <Message 
+                    key={`${groupIndex}-${msgIndex}`} 
+                    role={msg.role} 
+                    text={msg.text} 
+                    isPassword={msg.isPassword} 
+                  />
+                ))}
+              </div>
             ))}
             <div ref={messagesEndRef} />
           </div>
