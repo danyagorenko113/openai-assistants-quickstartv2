@@ -398,8 +398,11 @@ const Chat = ({ functionCallHandler = () => Promise.resolve("") }: ChatProps) =>
   }, []);
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const formattedInput = signUpStep === "phone" ? formatPhoneNumber(e.target.value) : e.target.value;
-    setUserInput(formattedInput);
+    if (signUpStep === "phone") {
+      setUserInput(formatPhoneNumber(e.target.value));
+    } else {
+      setUserInput(e.target.value);
+    }
   };
 
   return (
