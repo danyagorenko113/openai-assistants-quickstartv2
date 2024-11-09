@@ -19,8 +19,10 @@ type MessageProps = {
 };
 
 const UserMessage = React.memo(({ text, isPassword }: { text: string; isPassword?: boolean }) => (
-  <div className={styles.userMessage}>
-    {isPassword ? text.replace(/./g, '*') : text}
+  <div className="flex justify-end mb-4">
+    <div className="max-w-[85%] rounded-3xl bg-secondary px-4 py-2 text-[15px] leading-6">
+      {isPassword ? text.replace(/./g, '*') : text}
+    </div>
   </div>
 ));
 
