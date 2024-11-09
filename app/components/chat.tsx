@@ -220,7 +220,7 @@ const Chat = ({ functionCallHandler = () => Promise.resolve("") }: ChatProps) =>
   const registerUser = async (phoneNumber: string, password: string) => {
     try {
       console.log("Sending registration request...");
-      const response = await fetch('/api/register', {
+      const response = await fetch('/api/auth/register', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -228,21 +228,34 @@ const Chat = ({ functionCallHandler = () => Promise.resolve("") }: ChatProps) =>
         body: JSON.stringify({ phoneNumber, password }),
       });
 
-      const data = await response.json();
+      console.log("Response received");
+      console.log("Response status:", response.status);
+      console.log("Response headers:", JSON.stringify(Array.from(response.headers.entries())));
+
+      const text = await response.text();
+      console.log("Raw response text:", text);
+
+      let data;
+      try {
+        data = JSON.parse(text);
+        console.log("Parsed response data:", data);
+      } catch (jsonError) {
+        console.error("Error parsing JSON:", jsonError);
+        throw new Error(`Failed to parse server response: ${text}. ${jsonError}`);
+      }
 
       if (!response.ok) {
         console.error("Registration response not OK:", response.status, data);
         throw new Error(data.error || `Registration failed with status ${response.status}`);
       }
 
-      console.log("Registration successful, received data:", data);
       if (!data.token) {
         throw new Error("No token received from server");
       }
       return data.token;
     } catch (error) {
       console.error('Error in registerUser:', error);
-      throw error; // Re-throw the error to be handled in the calling function
+      throw error;
     }
   };
 
