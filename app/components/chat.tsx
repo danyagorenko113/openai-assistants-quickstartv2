@@ -173,6 +173,7 @@ const Chat = ({ functionCallHandler = () => Promise.resolve("") }: ChatProps) =>
       return;
     }
     try {
+      setInputDisabled(true);
       const response = await fetch(`/api/assistants/threads/${threadId}/messages`, {
         method: "POST",
         headers: {
@@ -302,8 +303,8 @@ const Chat = ({ functionCallHandler = () => Promise.resolve("") }: ChatProps) =>
         setLastUserMessageBeforeSignUp(userInput);
       }
       try {
+        appendMessage("user", userInput);
         await sendMessage(userInput);
-        setMessages(prev => [...prev, { role: "user", text: userInput }]);
         setUserInput("");
         setUserMessageCount(prevCount => {
           const newCount = prevCount + 1;
@@ -328,8 +329,8 @@ const Chat = ({ functionCallHandler = () => Promise.resolve("") }: ChatProps) =>
     if (userMessageCount === 4) {
       setLastUserMessageBeforeSignUp(question);
     }
+    appendMessage("user", question);
     sendMessage(question);
-    setMessages(prev => [...prev, { role: "user", text: question }]);
     setUserMessageCount(prevCount => {
       const newCount = prevCount + 1;
       if (newCount === 5) {
