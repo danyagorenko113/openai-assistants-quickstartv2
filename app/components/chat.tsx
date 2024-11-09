@@ -259,6 +259,11 @@ const Chat = ({ functionCallHandler = () => Promise.resolve("") }: ChatProps) =>
     }
   };
 
+  const validatePhoneNumber = (phoneNumber: string) => {
+    const phoneRegex = /^$$\d{3}$$\s\d{3}-\d{4}$/;
+    return phoneRegex.test(phoneNumber);
+  };
+
   const handleSubmit = useCallback(async (e: React.FormEvent) => {
     e.preventDefault();
     if (!userInput.trim()) return;
@@ -266,6 +271,10 @@ const Chat = ({ functionCallHandler = () => Promise.resolve("") }: ChatProps) =>
     setError(null);
 
     if (signUpStep === "phone") {
+      if (!validatePhoneNumber(userInput)) {
+        setError("Invalid phone number format. Please use (XXX) XXX-XXXX format.");
+        return;
+      }
       setPhoneNumber(userInput);
       setSignUpStep("password");
       appendMessage("system", "Thank you! Please create a password (at least 8 characters) to save your conversation.");
