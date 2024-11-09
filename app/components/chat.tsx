@@ -173,7 +173,6 @@ const Chat = ({ functionCallHandler = () => Promise.resolve("") }: ChatProps) =>
       return;
     }
     try {
-      setInputDisabled(true);
       const response = await fetch(`/api/assistants/threads/${threadId}/messages`, {
         method: "POST",
         headers: {
@@ -229,22 +228,13 @@ const Chat = ({ functionCallHandler = () => Promise.resolve("") }: ChatProps) =>
         body: JSON.stringify({ phoneNumber, password }),
       });
 
-      const responseText = await response.text();
-      console.log("Raw response:", responseText);
-
-      let data;
-      try {
-        data = JSON.parse(responseText);
-      } catch (jsonError) {
-        console.error("Error parsing JSON:", jsonError);
-        throw new Error(`Failed to parse server response: ${responseText}`);
-      }
-
       if (!response.ok) {
-        console.error("Registration response not OK:", response.status, data);
-        throw new Error(data.error || `Registration failed with status ${response.status}`);
+        const errorData = await response.json();
+        console.error("Registration response not OK:", response.status, errorData);
+        throw new Error(errorData.error || `Registration failed with status ${response.status}`);
       }
 
+      const data = await response.json();
       console.log("Registration successful, received data:", data);
       if (!data.token) {
         throw new Error("No token received from server");
@@ -303,8 +293,8 @@ const Chat = ({ functionCallHandler = () => Promise.resolve("") }: ChatProps) =>
         setLastUserMessageBeforeSignUp(userInput);
       }
       try {
-        appendMessage("user", userInput);
         await sendMessage(userInput);
+        setMessages(prev => [...prev, { role: "user", text: userInput }]);
         setUserInput("");
         setUserMessageCount(prevCount => {
           const newCount = prevCount + 1;
@@ -329,8 +319,8 @@ const Chat = ({ functionCallHandler = () => Promise.resolve("") }: ChatProps) =>
     if (userMessageCount === 4) {
       setLastUserMessageBeforeSignUp(question);
     }
-    appendMessage("user", question);
     sendMessage(question);
+    setMessages(prev => [...prev, { role: "user", text: question }]);
     setUserMessageCount(prevCount => {
       const newCount = prevCount + 1;
       if (newCount === 5) {
