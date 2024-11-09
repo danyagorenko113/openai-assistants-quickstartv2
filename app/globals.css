@@ -7,6 +7,14 @@
     "Roboto Mono", "Oxygen Mono", "Ubuntu Monospace", "Source Code Pro",
     "Fira Mono", "Droid Sans Mono", "Courier New", monospace;
   --font-inter: 'Inter';
+  
+  /* Color variables */
+  --foreground-rgb: 0, 0, 0;
+  --background-start-rgb: 214, 219, 220;
+  --background-end-rgb: 255, 255, 255;
+  --primary-color: #000;
+  --secondary-color: #333;
+  --accent-color: #0070f3;
 }
 
 * {
@@ -20,10 +28,21 @@ body {
   max-width: 100vw;
   overflow-x: hidden;
   font-family: var(--font-inter);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  text-rendering: optimizeLegibility;
 }
 
 body {
   color: rgb(var(--foreground-rgb));
+  background: linear-gradient(
+    to bottom,
+    transparent,
+    rgb(var(--background-end-rgb))
+  )
+  rgb(var(--background-start-rgb));
+  font-feature-settings: "ss01" 1, "ss02" 1, "ss03" 1;
+  letter-spacing: -0.01em;
 }
 
 a {
@@ -38,10 +57,12 @@ a {
   transform: translate(-50%, -50%);
   width: 700px;
   height: 300px;
-  border-radius: 12px;
+  border-radius: var(--border-radius);
   display: flex;
   justify-content: center;
   align-items: center;
+  background-color: rgba(255, 255, 255, 0.8);
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
 }
 
 .logo {
@@ -65,7 +86,7 @@ ol {
 }
 
 a {
-  color: blue;
+  color: var(--accent-color);
 }
 
 pre {
@@ -74,12 +95,42 @@ pre {
   white-space: pre-wrap;
   background-color: #e4e4e4;
   color: black;
+  border-radius: var(--border-radius);
+  font-family: var(--font-mono);
+  font-size: 14px;
+  line-height: 1.5;
 }
 
-/* Additional styles to ensure Inter is used everywhere */
+/* Ensure Inter is used for form elements */
 input,
 button,
 textarea,
 select {
   font-family: var(--font-inter);
+}
+
+/* Utility classes */
+.text-center {
+  text-align: center;
+}
+
+.mt-4 {
+  margin-top: 1rem;
+}
+
+.mb-4 {
+  margin-bottom: 1rem;
+}
+
+/* Specific styles for chat messages */
+.userMessage,
+.assistantMessage {
+  font-family: var(--font-inter);
+  font-weight: 400;
+  letter-spacing: -0.01em;
+  line-height: 1.5;
+}
+
+.assistantMessage {
+  font-size: 16px;
 }
