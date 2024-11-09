@@ -1,280 +1,432 @@
 "use client";
 
-import React, { useState, useEffect, useRef } from "react";
+import React, { useState, useEffect, useRef, useCallback } from "react";
 import styles from "./chat.module.css";
 import { AssistantStream } from "openai/lib/AssistantStream";
 import Markdown from "react-markdown";
 // @ts-expect-error - no types for this yet
 import { AssistantStreamEvent } from "openai/resources/beta/assistants/assistants";
 import { RequiredActionFunctionToolCall } from "openai/resources/beta/threads/runs/runs";
+import type { CodeInterpreterToolCallDelta, ToolCall } from "openai/resources/beta/threads/runs/steps";
+import QuickQuestions from "./QuickQuestions";
+import Login from "./Login";
+import LoginIcon from "./LoginIcon";
 
 type MessageProps = {
-  role: "user" | "assistant" | "code";
+  role: "user" | "assistant" | "code" | "system";
   text: string;
+  isPassword?: boolean;
 };
 
-const UserMessage = ({ text }: { text: string }) => {
-  return <div className={styles.userMessage}>{text}</div>;
-};
+const UserMessage = React.memo(({ text, isPassword }: { text: string; isPassword?: boolean }) => (
+  <div className={styles.userMessage}>
+    {isPassword ? text.replace(/./g, '*') : text}
+  </div>
+));
 
-const AssistantMessage = ({ text }: { text: string }) => {
-  return (
-    <div className={styles.assistantMessage}>
-      <Markdown>{text}</Markdown>
-    </div>
-  );
-};
+const AssistantMessage = React.memo(({ text }: { text: string }) => (
+  <div className={styles.assistantMessage}>
+    <Markdown>{text}</Markdown>
+  </div>
+));
 
-const CodeMessage = ({ text }: { text: string }) => {
-  return (
-    <div className={styles.codeMessage}>
-      {text.split("\n").map((line, index) => (
-        <div key={index}>
-          <span>{`${index + 1}. `}</span>
-          {line}
-        </div>
-      ))}
-    </div>
-  );
-};
+const CodeMessage = React.memo(({ text }: { text: string }) => (
+  <div className={styles.codeMessage}>
+    {text.split("\n").map((line, index) => (
+      <div key={index}>
+        <span>{`${index + 1}. `}</span>
+        {line}
+      </div>
+    ))}
+  </div>
+));
 
-const Message = ({ role, text }: MessageProps) => {
+const SystemMessage = React.memo(({ text }: { text: string }) => (
+  <div className={styles.assistantMessage}>
+    <Markdown>{text}</Markdown>
+  </div>
+));
+
+const Message = React.memo(({ role, text, isPassword }: MessageProps) => {
   switch (role) {
-    case "user":
-      return <UserMessage text={text} />;
-    case "assistant":
-      return <AssistantMessage text={text} />;
-    case "code":
-      return <CodeMessage text={text} />;
-    default:
-      return null;
+    case "user": return <UserMessage text={text} isPassword={isPassword} />;
+    case "assistant": return <AssistantMessage text={text} />;
+    case "code": return <CodeMessage text={text} />;
+    case "system": return <SystemMessage text={text} />;
+    default: return null;
   }
-};
+});
 
 type ChatProps = {
-  functionCallHandler?: (
-    toolCall: RequiredActionFunctionToolCall
-  ) => Promise<string>;
+  functionCallHandler?: (toolCall: RequiredActionFunctionToolCall) => Promise<string>;
 };
 
-const Chat = ({
-  functionCallHandler = () => Promise.resolve(""), // default to return empty string
-}: ChatProps) => {
+const Chat = ({ functionCallHandler = () => Promise.resolve("") }: ChatProps) => {
   const [userInput, setUserInput] = useState("");
-  const [messages, setMessages] = useState([]);
+  const [messages, setMessages] = useState<MessageProps[]>([]);
   const [inputDisabled, setInputDisabled] = useState(false);
   const [threadId, setThreadId] = useState("");
+  const [showQuickQuestions, setShowQuickQuestions] = useState(true);
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [showLoginForm, setShowLoginForm] = useState(false);
+  const [token, setToken] = useState("");
+  const [userMessageCount, setUserMessageCount] = useState(0);
+  const [signUpStep, setSignUpStep] = useState<"none" | "phone" | "password">("none");
+  const [phoneNumber, setPhoneNumber] = useState("");
+  const [lastUserMessageBeforeSignUp, setLastUserMessageBeforeSignUp] = useState("");
+  const [error, setError] = useState<string | null>(null);
 
-  // automatically scroll to bottom of chat
-  const messagesEndRef = useRef<HTMLDivElement | null>(null);
-  const scrollToBottom = () => {
+  const messagesEndRef = useRef<HTMLDivElement>(null);
+  const chatContainerRef = useRef<HTMLDivElement>(null);
+
+  const scrollToBottom = useCallback(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
-  };
-  useEffect(() => {
-    scrollToBottom();
-  }, [messages]);
-
-  // create a new threadID when chat component created
-  useEffect(() => {
-    const createThread = async () => {
-      const res = await fetch(`/api/assistants/threads`, {
-        method: "POST",
-      });
-      const data = await res.json();
-      setThreadId(data.threadId);
-    };
-    createThread();
   }, []);
 
-  const sendMessage = async (text) => {
-    const response = await fetch(
-      `/api/assistants/threads/${threadId}/messages`,
-      {
-        method: "POST",
-        body: JSON.stringify({
-          content: text,
-        }),
-      }
-    );
-    const stream = AssistantStream.fromReadableStream(response.body);
-    handleReadableStream(stream);
-  };
-
-  const submitActionResult = async (runId, toolCallOutputs) => {
-    const response = await fetch(
-      `/api/assistants/threads/${threadId}/actions`,
-      {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          runId: runId,
-          toolCallOutputs: toolCallOutputs,
-        }),
-      }
-    );
-    const stream = AssistantStream.fromReadableStream(response.body);
-    handleReadableStream(stream);
-  };
-
-  const handleSubmit = (e) => {
-    e.preventDefault();
-    if (!userInput.trim()) return;
-    sendMessage(userInput);
-    setMessages((prevMessages) => [
-      ...prevMessages,
-      { role: "user", text: userInput },
-    ]);
-    setUserInput("");
-    setInputDisabled(true);
+  useEffect(() => {
     scrollToBottom();
-  };
+  }, [messages, scrollToBottom]);
 
-  /* Stream Event Handlers */
-
-  // textCreated - create new assistant message
-  const handleTextCreated = () => {
-    appendMessage("assistant", "");
-  };
-
-  // textDelta - append text to last assistant message
-  const handleTextDelta = (delta) => {
-    if (delta.value != null) {
-      appendToLastMessage(delta.value);
-    };
-    if (delta.annotations != null) {
-      annotateLastMessage(delta.annotations);
+  useEffect(() => {
+    const storedToken = localStorage.getItem('token');
+    if (storedToken) {
+      setToken(storedToken);
+      setIsAuthenticated(true);
     }
-  };
+  }, []);
 
-  // imageFileDone - show image in chat
-  const handleImageFileDone = (image) => {
+  useEffect(() => {
+    const createThread = async () => {
+      try {
+        const res = await fetch(`/api/assistants/threads`, { 
+          method: "POST",
+          headers: {
+            'Content-Type': 'application/json',
+            ...(token && { 'Authorization': `Bearer ${token}` })
+          }
+        });
+        if (!res.ok) {
+          throw new Error('Failed to create thread');
+        }
+        const data = await res.json();
+        setThreadId(data.threadId);
+      } catch (error) {
+        console.error('Error creating thread:', error);
+        setError('Failed to start a new conversation. Please try again.');
+      }
+    };
+    if (!threadId) {
+      createThread();
+    }
+  }, [token, threadId]);
+
+  const handleTextCreated = useCallback(() => appendMessage("assistant", ""), []);
+
+  const handleTextDelta = useCallback((delta: { value: string | null; annotations: any[] | null }) => {
+    if (delta.value != null) appendToLastMessage(delta.value);
+    if (delta.annotations != null) annotateLastMessage(delta.annotations);
+  }, []);
+
+  const handleImageFileDone = useCallback((image: { file_id: string }) => {
     appendToLastMessage(`\n![${image.file_id}](/api/files/${image.file_id})\n`);
-  }
+  }, []);
 
-  // toolCallCreated - log new tool call
-  const toolCallCreated = (toolCall) => {
-    if (toolCall.type != "code_interpreter") return;
-    appendMessage("code", "");
-  };
+  const toolCallCreated = useCallback((toolCall: { type: string }) => {
+    if (toolCall.type === "code_interpreter") appendMessage("code", "");
+  }, []);
 
-  // toolCallDelta - log delta and snapshot for the tool call
-  const toolCallDelta = (delta, snapshot) => {
-    if (delta.type != "code_interpreter") return;
-    if (!delta.code_interpreter.input) return;
-    appendToLastMessage(delta.code_interpreter.input);
-  };
+  const toolCallDelta = useCallback((delta: CodeInterpreterToolCallDelta, snapshot: ToolCall) => {
+    if (delta.type === "code_interpreter" && delta.code_interpreter?.input) {
+      appendToLastMessage(delta.code_interpreter.input);
+    }
+  }, []);
 
-  // handleRequiresAction - handle function call
-  const handleRequiresAction = async (
-    event: AssistantStreamEvent.ThreadRunRequiresAction
-  ) => {
+  const handleRequiresAction = useCallback(async (event: AssistantStreamEvent.ThreadRunRequiresAction) => {
     const runId = event.data.id;
     const toolCalls = event.data.required_action.submit_tool_outputs.tool_calls;
-    // loop over tool calls and call function handler
     const toolCallOutputs = await Promise.all(
-      toolCalls.map(async (toolCall) => {
-        const result = await functionCallHandler(toolCall);
-        return { output: result, tool_call_id: toolCall.id };
-      })
+      toolCalls.map(async (toolCall) => ({
+        output: await functionCallHandler(toolCall),
+        tool_call_id: toolCall.id
+      }))
     );
     setInputDisabled(true);
     submitActionResult(runId, toolCallOutputs);
-  };
+  }, [functionCallHandler]);
 
-  // handleRunCompleted - re-enable the input form
-  const handleRunCompleted = () => {
-    setInputDisabled(false);
-  };
-
-  const handleReadableStream = (stream: AssistantStream) => {
-    // messages
+  const handleReadableStream = useCallback((stream: AssistantStream) => {
     stream.on("textCreated", handleTextCreated);
     stream.on("textDelta", handleTextDelta);
-
-    // image
     stream.on("imageFileDone", handleImageFileDone);
-
-    // code interpreter
     stream.on("toolCallCreated", toolCallCreated);
     stream.on("toolCallDelta", toolCallDelta);
-
-    // events without helpers yet (e.g. requires_action and run.done)
-    stream.on("event", (event) => {
-      if (event.event === "thread.run.requires_action")
-        handleRequiresAction(event);
-      if (event.event === "thread.run.completed") handleRunCompleted();
+    stream.on("event", (event: any) => {
+      if (event.event === "thread.run.requires_action") handleRequiresAction(event);
+      if (event.event === "thread.run.completed") setInputDisabled(false);
     });
+  }, [handleTextCreated, handleTextDelta, handleImageFileDone, toolCallCreated, toolCallDelta, handleRequiresAction]);
+
+  const sendMessage = useCallback(async (text: string) => {
+    if (!threadId) {
+      console.error('No thread ID available');
+      setError('Unable to send message. Please try again.');
+      return;
+    }
+    try {
+      const response = await fetch(`/api/assistants/threads/${threadId}/messages`, {
+        method: "POST",
+        headers: {
+          'Content-Type': 'application/json',
+          ...(token && { 'Authorization': `Bearer ${token}` })
+        },
+        body: JSON.stringify({ content: text }),
+      });
+      if (!response.ok) {
+        const errorText = await response.text();
+        console.error('Error response:', errorText);
+        throw new Error(`Failed to send message: ${response.status} ${response.statusText}`);
+      }
+      const stream = AssistantStream.fromReadableStream(response.body);
+      handleReadableStream(stream);
+    } catch (error) {
+      console.error('Error sending message:', error);
+      setError(`Failed to send message: ${error instanceof Error ? error.message : 'Unknown error'}`);
+      setInputDisabled(false);
+    }
+  }, [threadId, handleReadableStream, token]);
+
+  const submitActionResult = useCallback(async (runId: string, toolCallOutputs: any[]) => {
+    try {
+      const response = await fetch(`/api/assistants/threads/${threadId}/actions`, {
+        method: "POST",
+        headers: { 
+          "Content-Type": "application/json",
+          ...(token && { 'Authorization': `Bearer ${token}` })
+        },
+        body: JSON.stringify({ runId, toolCallOutputs }),
+      });
+      if (!response.ok) {
+        throw new Error('Failed to submit action result');
+      }
+      const stream = AssistantStream.fromReadableStream(response.body);
+      handleReadableStream(stream);
+    } catch (error) {
+      console.error('Error submitting action result:', error);
+      setError('Failed to process the request. Please try again.');
+      setInputDisabled(false);
+    }
+  }, [threadId, handleReadableStream, token]);
+
+  const registerUser = async (phoneNumber: string, password: string) => {
+    try {
+      console.log("Sending registration request...");
+      const response = await fetch('/api/register', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ phoneNumber, password }),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        console.error("Registration response not OK:", response.status, data);
+        throw new Error(data.error || `Registration failed with status ${response.status}`);
+      }
+
+      console.log("Registration successful, received data:", data);
+      if (!data.token) {
+        throw new Error("No token received from server");
+      }
+      return data.token;
+    } catch (error) {
+      console.error('Error in registerUser:', error);
+      throw error; // Re-throw the error to be handled in the calling function
+    }
   };
 
-  /*
-    =======================
-    === Utility Helpers ===
-    =======================
-  */
+  const handleSubmit = useCallback(async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!userInput.trim()) return;
 
-  const appendToLastMessage = (text) => {
-    setMessages((prevMessages) => {
-      const lastMessage = prevMessages[prevMessages.length - 1];
-      const updatedLastMessage = {
-        ...lastMessage,
-        text: lastMessage.text + text,
-      };
-      return [...prevMessages.slice(0, -1), updatedLastMessage];
+    setError(null);
+
+    if (signUpStep === "phone") {
+      setPhoneNumber(userInput);
+      setSignUpStep("password");
+      appendMessage("system", "Thank you! Please create a password (at least 8 characters) to save your conversation.");
+      appendMessage("user", userInput);
+      setUserInput("");
+      setInputDisabled(false);
+    } else if (signUpStep === "password") {
+      if (userInput.length < 8) {
+        setError("Password must be at least 8 characters long.");
+        return;
+      }
+      try {
+        console.log("Attempting to register user...");
+        const newToken = await registerUser(phoneNumber, userInput);
+        console.log("Registration successful, token received");
+        setToken(newToken);
+        setIsAuthenticated(true);
+        localStorage.setItem('token', newToken);
+        
+        setSignUpStep("none");
+        appendMessage("user", "********", true); // Display asterisks instead of the actual password
+        appendMessage("system", "Thank you! Your account has been successfully created.");
+        sendMessage(lastUserMessageBeforeSignUp);
+        setUserInput("");
+      } catch (error) {
+        console.error("Registration error:", error);
+        setError(error instanceof Error ? error.message : "An unexpected error occurred during registration. Please try again.");
+        appendMessage("system", `Error: ${error instanceof Error ? error.message : "An unexpected error occurred"}. Please try again.`);
+        setSignUpStep("phone");
+        setPhoneNumber("");
+      }
+    } else {
+      if (userMessageCount === 4) {
+        setLastUserMessageBeforeSignUp(userInput);
+      }
+      try {
+        await sendMessage(userInput);
+        setMessages(prev => [...prev, { role: "user", text: userInput }]);
+        setUserInput("");
+        setUserMessageCount(prevCount => {
+          const newCount = prevCount + 1;
+          if (newCount === 5) {
+            setSignUpStep("phone");
+            appendMessage("system", "Please provide your phone number to continue the conversation.");
+            setInputDisabled(false);
+          }
+          return newCount;
+        });
+      } catch (error) {
+        console.error("Error sending message:", error);
+        setError("Failed to send message. Please try again.");
+      }
+    }
+
+    setShowQuickQuestions(false);
+    scrollToBottom();
+  }, [userInput, sendMessage, scrollToBottom, userMessageCount, signUpStep, lastUserMessageBeforeSignUp, phoneNumber, registerUser]);
+
+  const handleQuickQuestionClick = useCallback((question: string) => {
+    if (userMessageCount === 4) {
+      setLastUserMessageBeforeSignUp(question);
+    }
+    sendMessage(question);
+    setMessages(prev => [...prev, { role: "user", text: question }]);
+    setUserMessageCount(prevCount => {
+      const newCount = prevCount + 1;
+      if (newCount === 5) {
+        setSignUpStep("phone");
+        appendMessage("system", "Please provide your phone number to continue the conversation.");
+        setInputDisabled(false);
+      }
+      return newCount;
     });
-  };
+    setShowQuickQuestions(false);
+    scrollToBottom();
+  }, [sendMessage, scrollToBottom, userMessageCount]);
 
-  const appendMessage = (role, text) => {
-    setMessages((prevMessages) => [...prevMessages, { role, text }]);
-  };
+  const appendToLastMessage = useCallback((text: string) => {
+    setMessages(prev => {
+      const lastMessage = prev[prev.length - 1];
+      const updatedLastMessage = { ...lastMessage, text: lastMessage.text + text };
+      return [...prev.slice(0, -1), updatedLastMessage];
+    });
+  }, []);
 
-  const annotateLastMessage = (annotations) => {
-    setMessages((prevMessages) => {
-      const lastMessage = prevMessages[prevMessages.length - 1];
-      const updatedLastMessage = {
-        ...lastMessage,
-      };
-      annotations.forEach((annotation) => {
-        if (annotation.type === 'file_path') {
+  const appendMessage = useCallback((role: "user" | "assistant" | "code" | "system", text: string, isPassword: boolean = false) => {
+    setMessages(prev => [...prev, { role, text, isPassword }]);
+  }, []);
+
+  const annotateLastMessage = useCallback((annotations: Array<{ type: string; text: string; file_path?: { file_id: string } }>) => {
+    setMessages(prev => {
+      const lastMessage = prev[prev.length - 1];
+      const updatedLastMessage = { ...lastMessage };
+      annotations.forEach(annotation => {
+        if (annotation.type === 'file_path' && annotation.file_path) {
           updatedLastMessage.text = updatedLastMessage.text.replaceAll(
             annotation.text,
             `/api/files/${annotation.file_path.file_id}`
           );
         }
-      })
-      return [...prevMessages.slice(0, -1), updatedLastMessage];
+      });
+      return [...prev.slice(0, -1), updatedLastMessage];
     });
-    
-  }
+  }, []);
+
+  const handleLogin = useCallback((newToken: string) => {
+    setToken(newToken);
+    setIsAuthenticated(true);
+    setShowLoginForm(false);
+    localStorage.setItem('token', newToken);
+  }, []);
+
+  const handleLoginIconClick = useCallback(() => {
+    setShowLoginForm(true);
+  }, []);
+
+  const formatPhoneNumber = (value: string) => {
+    const phoneNumber = value.replace(/[^\d]/g, '');
+    const phoneNumberLength = phoneNumber.length;
+    if (phoneNumberLength < 4) return phoneNumber;
+    if (phoneNumberLength < 7) {
+      return `(${phoneNumber.slice(0, 3)}) ${phoneNumber.slice(3)}`;
+    }
+    return `(${phoneNumber.slice(0, 3)}) ${phoneNumber.slice(3, 6)}-${phoneNumber.slice(6, 10)}`;
+  };
+
+  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const formattedInput = signUpStep === "phone" ? formatPhoneNumber(e.target.value) : e.target.value;
+    setUserInput(formattedInput);
+  };
 
   return (
-    <div className={styles.chatContainer}>
-      <div className={styles.messages}>
-        {messages.map((msg, index) => (
-          <Message key={index} role={msg.role} text={msg.text} />
-        ))}
-        <div ref={messagesEndRef} />
+    <div className={styles.chatContainer} ref={chatContainerRef}>
+      <div className={styles.messagesContainer}>
+        {showQuickQuestions && messages.length === 0 ? (
+          <div className={styles.quickQuestionsWrapper}>
+            <QuickQuestions onQuestionClick={handleQuickQuestionClick} />
+          </div>
+        ) : (
+          <div className={styles.messages}>
+            {messages.map((msg, index) => (
+              <Message key={index} role={msg.role} text={msg.text} isPassword={msg.isPassword} />
+            ))}
+            <div ref={messagesEndRef} />
+          </div>
+        )}
       </div>
-      <form
-        onSubmit={handleSubmit}
-        className={`${styles.inputForm} ${styles.clearfix}`}
-      >
-        <input
-          type="text"
-          className={styles.input}
-          value={userInput}
-          onChange={(e) => setUserInput(e.target.value)}
-          placeholder="Enter your question"
-        />
-        <button
-          type="submit"
-          className={styles.button}
-          disabled={inputDisabled}
-        >
-          Send
-        </button>
-      </form>
+      {error && <div className={styles.errorMessage}>{error}</div>}
+      <div className={styles.inputContainer}>
+        <form onSubmit={handleSubmit} className={styles.inputForm}>
+          <input
+            type={signUpStep === "password" ? "password" : signUpStep === "phone" ? "tel" : "text"}
+            className={styles.input}
+            value={userInput}
+            onChange={handleInputChange}
+            placeholder={
+              signUpStep === "phone" 
+                ? "Enter your phone number" 
+                : signUpStep === "password" 
+                  ? "Enter your password (min 8 characters)" 
+                  : "Enter your question"
+            }
+            disabled={inputDisabled}
+          />
+          <button type="submit" className={styles.button} disabled={inputDisabled}>
+            Send
+          </button>
+        </form>
+      </div>
+      {showLoginForm ? (
+        <Login onLogin={handleLogin} onClose={() => setShowLoginForm(false)} />
+      ) : (
+        <LoginIcon onClick={handleLoginIconClick} />
+      )}
     </div>
   );
 };

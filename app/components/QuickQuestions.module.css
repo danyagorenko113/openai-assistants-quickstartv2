@@ -1,0 +1,53 @@
+.card {
+  width: 100%;
+  max-width: 32rem;
+  margin: 0 auto 2rem;
+  border-radius: 0.5rem;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+  background-color: #ffffff;
+}
+
+.cardHeader {
+  background: linear-gradient(to right, #126eff, #126eff);
+  color: white;
+  padding: 1rem;
+  border-top-left-radius: 0.5rem;
+  border-top-right-radius: 0.5rem;
+}
+
+.cardTitle {
+  font-size: 1.5rem;
+  font-weight: bold;
+  margin: 0;
+  text-align: center;
+}
+
+.cardContent {
+  padding: 1.5rem;
+  display: grid;
+  gap: 1rem;
+}
+
+.questionButton {
+  width: 100%;
+  text-align: center;
+  padding: 1rem 1.5rem;
+  font-size: 1.125rem;
+  font-weight: 500;
+  background-color: #f3f4f6;
+  border: 1px solid #e5e7eb;
+  border-radius: 0.375rem;
+  transition: all 0.2s ease-in-out;
+  cursor: pointer;
+}
+
+.questionButton:hover {
+  background-color: #e5e7eb;
+  border-color: #d1d5db;
+}
+
+.questionButton:focus {
+  outline: none;
+  ring: 2px solid #3b82f6;
+  ring-offset: 2px;
+}
