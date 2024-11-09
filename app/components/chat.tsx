@@ -75,7 +75,6 @@ const Chat = ({ functionCallHandler = () => Promise.resolve("") }: ChatProps) =>
   const [phoneNumber, setPhoneNumber] = useState("");
   const [lastUserMessageBeforeSignUp, setLastUserMessageBeforeSignUp] = useState("");
   const [error, setError] = useState<string | null>(null);
-  const [aiPaused, setAiPaused] = useState(false);
 
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const chatContainerRef = useRef<HTMLDivElement>(null);
@@ -168,8 +167,8 @@ const Chat = ({ functionCallHandler = () => Promise.resolve("") }: ChatProps) =>
   }, [handleTextCreated, handleTextDelta, handleImageFileDone, toolCallCreated, toolCallDelta, handleRequiresAction]);
 
   const sendMessage = useCallback(async (text: string) => {
-    if (!threadId || aiPaused) {
-      console.error('No thread ID available or AI is paused');
+    if (!threadId) {
+      console.error('No thread ID available');
       setError('Unable to send message. Please try again.');
       return;
     }
@@ -194,7 +193,7 @@ const Chat = ({ functionCallHandler = () => Promise.resolve("") }: ChatProps) =>
       setError(`Failed to send message: ${error instanceof Error ? error.message : 'Unknown error'}`);
       setInputDisabled(false);
     }
-  }, [threadId, handleReadableStream, token, aiPaused]);
+  }, [threadId, handleReadableStream, token]);
 
   const submitActionResult = useCallback(async (runId: string, toolCallOutputs: any[]) => {
     try {
@@ -304,9 +303,8 @@ const Chat = ({ functionCallHandler = () => Promise.resolve("") }: ChatProps) =>
         localStorage.setItem('token', newToken);
         
         setSignUpStep("none");
-        appendMessage("user", "********", true); // Display asterisks instead of the actual password
+        appendMessage("user", "********", true);
         appendMessage("system", "Thank you! Your account has been successfully created.");
-        setAiPaused(false); // Resume AI responses
         sendMessage(lastUserMessageBeforeSignUp);
         setUserInput("");
       } catch (error) {
@@ -319,21 +317,20 @@ const Chat = ({ functionCallHandler = () => Promise.resolve("") }: ChatProps) =>
     } else {
       if (userMessageCount === 4) {
         setLastUserMessageBeforeSignUp(userInput);
-        setAiPaused(true); // Pause AI responses
+        appendMessage("user", userInput);
+        setUserInput("");
+        setUserMessageCount(prev => prev + 1);
+        setSignUpStep("phone");
+        appendMessage("system", "Please provide your phone number to continue the conversation.");
+        setInputDisabled(false);
+        return; // Don't send the message to the assistant
       }
+
       try {
         await sendMessage(userInput);
         setMessages(prev => [...prev, { role: "user", text: userInput }]);
         setUserInput("");
-        setUserMessageCount(prevCount => {
-          const newCount = prevCount + 1;
-          if (newCount === 5) {
-            setSignUpStep("phone");
-            appendMessage("system", "Please provide your phone number to continue the conversation.");
-            setInputDisabled(false);
-          }
-          return newCount;
-        });
+        setUserMessageCount(prevCount => prevCount + 1);
       } catch (error) {
         console.error("Error sending message:", error);
         setError("Failed to send message. Please try again.");
@@ -347,19 +344,17 @@ const Chat = ({ functionCallHandler = () => Promise.resolve("") }: ChatProps) =>
   const handleQuickQuestionClick = useCallback((question: string) => {
     if (userMessageCount === 4) {
       setLastUserMessageBeforeSignUp(question);
-      setAiPaused(true); // Pause AI responses
+      appendMessage("user", question);
+      setUserMessageCount(prev => prev + 1);
+      setSignUpStep("phone");
+      appendMessage("system", "Please provide your phone number to continue the conversation.");
+      setInputDisabled(false);
+      return; // Don't send the message to the assistant
     }
+
     sendMessage(question);
     setMessages(prev => [...prev, { role: "user", text: question }]);
-    setUserMessageCount(prevCount => {
-      const newCount = prevCount + 1;
-      if (newCount === 5) {
-        setSignUpStep("phone");
-        appendMessage("system", "Please provide your phone number to continue the conversation.");
-        setInputDisabled(false);
-      }
-      return newCount;
-    });
+    setUserMessageCount(prevCount => prevCount + 1);
     setShowQuickQuestions(false);
     scrollToBottom();
   }, [sendMessage, scrollToBottom, userMessageCount]);
