@@ -414,8 +414,8 @@ const Chat = ({ functionCallHandler = () => Promise.resolve("") }: ChatProps) =>
   };
 
   return (
-    <div className={styles.chatContainer} ref={chatContainerRef}>
-      <div className={styles.messagesContainer}>
+    <div className={`${styles.chatContainer} chat-container`}>
+      <div className={`${styles.messagesContainer} messages-container`}>
         {showQuickQuestions && messages.length === 0 ? (
           <div className={styles.quickQuestionsWrapper}>
             <QuickQuestions onQuestionClick={handleQuickQuestionClick} />
@@ -446,7 +446,7 @@ const Chat = ({ functionCallHandler = () => Promise.resolve("") }: ChatProps) =>
         )}
       </div>
       {error && <div className={styles.errorMessage}>{error}</div>}
-      <div className={styles.inputContainer}>
+      <div className={`${styles.inputContainer} input-container`}>
         <form onSubmit={handleSubmit} className={styles.inputForm}>
           <input
             type={signUpStep === "password" ? "password" : signUpStep === "phone" ? "tel" : "text"}
