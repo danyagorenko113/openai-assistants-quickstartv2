@@ -22,11 +22,11 @@ export async function POST(request: NextRequest) {
     }
 
     // Validate phone number format
-    const phoneRegex = /^$$\d{3}$$\s\d{3}-\d{4}$/;
-    if (!phoneRegex.test(phoneNumber)) {
+    const phoneRegex = /^\d{9}$/;
+    if (!phoneRegex.test(phoneNumber.replace(/\D/g, ''))) {
       console.log('Invalid phone number format');
       return NextResponse.json(
-        { error: 'Invalid phone number format. Please use (XXX) XXX-XXXX format.' },
+        { error: 'Invalid phone number format. Please enter 9 digits.' },
         { status: 400 }
       );
     }
