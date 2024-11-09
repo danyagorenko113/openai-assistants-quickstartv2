@@ -6,6 +6,7 @@
   --font-mono: ui-monospace, Menlo, Monaco, "Cascadia Mono", "Segoe UI Mono",
     "Roboto Mono", "Oxygen Mono", "Ubuntu Monospace", "Source Code Pro",
     "Fira Mono", "Droid Sans Mono", "Courier New", monospace;
+  --font-inter: 'Inter';
 }
 
 * {
@@ -18,7 +19,7 @@ html,
 body {
   max-width: 100vw;
   overflow-x: hidden;
-  font-family: 'Inter', sans-serif;
+  font-family: var(--font-inter);
 }
 
 body {
@@ -73,4 +74,12 @@ pre {
   white-space: pre-wrap;
   background-color: #e4e4e4;
   color: black;
+}
+
+/* Additional styles to ensure Inter is used everywhere */
+input,
+button,
+textarea,
+select {
+  font-family: var(--font-inter);
 }
