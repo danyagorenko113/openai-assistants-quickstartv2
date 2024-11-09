@@ -30,6 +30,13 @@
   width: 100%;
   max-width: 64rem;
   margin: 0 auto;
+  gap: 48px; /* Space between message groups */
+}
+
+.messageGroup {
+  display: flex;
+  flex-direction: column;
+  gap: 32px; /* Space between messages within a group */
 }
 
 .inputContainer {
@@ -75,7 +82,7 @@
 .userMessage,
 .assistantMessage,
 .codeMessage {
-  margin: 24px 0;
+  margin: 0; /* Reset margin as we'll use gap */
   padding: 16px 24px;
   align-self: flex-start;
   border-radius: 24px;
@@ -100,6 +107,9 @@
 .assistantMessage {
   background-color: transparent;
   width: 100%;
+  display: flex;
+  align-items: flex-start;
+  gap: 16px;
 }
 
 .codeMessage {
