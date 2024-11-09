@@ -1,9 +1,13 @@
-import { Mulish } from "next/font/google";
+import { Roboto } from "next/font/google";
 import "./globals.css";
 import Warnings from "./components/warnings";
 import { assistantId } from "./assistant-config";
 
-const mulish = Mulish({ subsets: ["latin"] });
+const roboto = Roboto({ 
+  weight: ['300', '400', '500', '700'],
+  subsets: ["latin"],
+  display: 'swap',
+});
 
 export const metadata = {
   title: "Assistants API Quickstart",
@@ -21,7 +25,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         <meta name="viewport" content="width=device-width, initial-scale=1" />
         <link rel="icon" href="/openai.svg" />
       </head>
-      <body className={mulish.className}>
+      <body className={roboto.className}>
         <main>
           {assistantId ? children : <Warnings />}
         </main>
