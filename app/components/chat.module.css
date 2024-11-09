@@ -31,13 +31,13 @@
   width: 100%;
   max-width: 64rem;
   margin: 0 auto;
-  gap: 48px; /* Space between message groups */
+  gap: 32px; /* Decreased space between message groups */
 }
 
 .messageGroup {
   display: flex;
   flex-direction: column;
-  gap: 32px; /* Space between messages within a group */
+  gap: 24px; /* Decreased space between messages within a group */
 }
 
 .inputContainer {
@@ -108,7 +108,7 @@
   border-radius: 20px;
   max-width: 85%;
   padding: 10px 16px;
-  margin-bottom: 16px;
+  margin-bottom: 12px; /* Decreased space between user messages */
 }
 
 .assistantMessage {
@@ -119,7 +119,7 @@
   align-items: flex-start;
   gap: 16px;
   border-radius: 0;
-  padding: 16px 0;
+  padding: 12px 0; /* Decreased vertical padding */
 }
 
 .avatar {
