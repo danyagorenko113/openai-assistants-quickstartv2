@@ -26,7 +26,7 @@ export async function POST(request: NextRequest) {
     if (!phoneRegex.test(phoneNumber)) {
       console.log('Invalid phone number format');
       return NextResponse.json(
-        { error: 'Invalid phone number format' },
+        { error: 'Invalid phone number format. Please use (XXX) XXX-XXXX format.' },
         { status: 400 }
       );
     }
