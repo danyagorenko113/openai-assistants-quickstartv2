@@ -6,7 +6,7 @@
   max-width: none;
   margin: 0;
   font-family: var(--font-inter);
-  position: fixed;
+  position: absolute;
   top: 0;
   left: 0;
   right: 0;
@@ -254,11 +254,13 @@
 @media (max-width: 768px) {
   .chatContainer {
     height: 100%;
-    position: fixed;
+    position: absolute;
     top: 0;
     left: 0;
     right: 0;
     bottom: 0;
+    overflow-y: scroll;
+    -webkit-overflow-scrolling: touch;
   }
 
   .messagesContainer {
