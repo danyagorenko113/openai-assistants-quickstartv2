@@ -22,9 +22,9 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         <link rel="icon" href="/HSS_logo.png" />
       </head>
       <body>
-        <main>
+        <div className="app-container">
           {assistantId ? children : <Warnings />}
-        </main>
+        </div>
       </body>
     </html>
   );
