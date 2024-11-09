@@ -14,7 +14,7 @@
   
   /* Color variables */
   --foreground-rgb: 0, 0, 0;
-  --background-start-rgb: 214, 219, 220;
+  --background-start-rgb: 240, 240, 240;
   --background-end-rgb: 255, 255, 255;
   --primary-color: #000;
   --secondary-color: #333;
@@ -25,6 +25,9 @@
   --color-primary-foreground: 255 255 255;
   --color-secondary: 51 51 51;
   --color-accent: 0 112 243;
+
+  /* App height variable for mobile */
+  --app-height: 100%;
 }
 
 * {
@@ -46,18 +49,29 @@ body {
   left: 0;
   right: 0;
   bottom: 0;
-}
-
-body {
-  color: rgb(var(--foreground-rgb));
-  background: rgb(var(--background-start-rgb));
   font-family: var(--font-inter);
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
   text-rendering: optimizeLegibility;
   line-height: 1.6;
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
+}
+
+body {
+  color: rgb(var(--foreground-rgb));
+  background: linear-gradient(
+    to bottom,
+    rgb(var(--background-start-rgb)),
+    rgb(var(--background-end-rgb))
+  );
   font-feature-settings: "ss01" 1, "ss02" 1, "ss03" 1;
   letter-spacing: -0.01em;
+  overscroll-behavior: none;
+  -webkit-overflow-scrolling: touch;
+  width: 100%;
+  height: 100%;
+  overflow-x: hidden;
 }
 
 .app-container {
@@ -184,6 +198,7 @@ li {
   overflow-y: auto;
   padding: 1rem;
   -webkit-overflow-scrolling: touch;
+  scroll-behavior: smooth;
 }
 
 .input-container {
@@ -224,4 +239,41 @@ li {
 
 .messages-container::-webkit-scrollbar {
   display: none;
+}
+
+/* Disable double-tap zoom */
+* {
+  touch-action: manipulation;
+}
+
+/* Add subtle animations for user actions */
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.userMessage,
+.assistantMessage {
+  animation: fadeIn 0.3s ease-out;
+}
+
+/* Responsive layout adjustments */
+@media (max-width: 640px) {
+  .chat-container {
+    padding: 0.5rem;
+  }
+
+  .messages-container {
+    padding: 0.5rem;
+  }
+
+  .input-container {
+    padding: 0.5rem;
+  }
 }
