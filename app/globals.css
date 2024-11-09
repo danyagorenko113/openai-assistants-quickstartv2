@@ -1,12 +1,16 @@
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
 
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
 :root {
   --max-width: 1100px;
   --border-radius: 12px;
   --font-mono: ui-monospace, Menlo, Monaco, "Cascadia Mono", "Segoe UI Mono",
     "Roboto Mono", "Oxygen Mono", "Ubuntu Monospace", "Source Code Pro",
     "Fira Mono", "Droid Sans Mono", "Courier New", monospace;
-  --font-inter: 'Inter';
+  --font-inter: 'Inter', sans-serif;
   
   /* Color variables */
   --foreground-rgb: 0, 0, 0;
@@ -26,12 +30,13 @@
 html,
 body {
   max-width: 100vw;
-  overflow-x: hidden;
+  height: 100%;
+  overflow: hidden;
   font-family: var(--font-inter);
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
   text-rendering: optimizeLegibility;
-  line-height: 1.6; /* Increased from default */
+  line-height: 1.6;
 }
 
 body {
@@ -84,7 +89,7 @@ a {
 ul,
 ol {
   padding-left: 20px;
-  line-height: 1.7; /* Increased for list items */
+  line-height: 1.7;
 }
 
 a {
@@ -100,10 +105,9 @@ pre {
   border-radius: var(--border-radius);
   font-family: var(--font-mono);
   font-size: 14px;
-  line-height: 1.6; /* Increased for code blocks */
+  line-height: 1.6;
 }
 
-/* Ensure Inter is used for form elements */
 input,
 button,
 textarea,
@@ -111,7 +115,6 @@ select {
   font-family: var(--font-inter);
 }
 
-/* Utility classes */
 .text-center {
   text-align: center;
 }
@@ -124,32 +127,78 @@ select {
   margin-bottom: 1rem;
 }
 
-/* Specific styles for chat messages */
 .userMessage,
 .assistantMessage {
   font-family: var(--font-inter);
   font-weight: 400;
   letter-spacing: -0.01em;
-  line-height: 1.7; /* Increased for chat messages */
+  line-height: 1.7;
 }
 
 .assistantMessage {
   font-size: 16px;
 }
 
-/* Additional styles for better readability */
 p {
   margin-bottom: 1em;
-  line-height: 1.7; /* Increased for paragraphs */
+  line-height: 1.7;
 }
 
 h1, h2, h3, h4, h5, h6 {
-  line-height: 1.3; /* Adjusted for headings */
+  line-height: 1.3;
   margin-top: 1.5em;
   margin-bottom: 0.5em;
 }
 
-/* Increase spacing between list items */
 li {
   margin-bottom: 0.5em;
+}
+
+/* New styles for full-viewport chat interface */
+#__next {
+  height: 100%;
+}
+
+.chat-container {
+  display: flex;
+  flex-direction: column;
+  height: 100vh;
+  width: 100vw;
+  overflow: hidden;
+}
+
+.messages-container {
+  flex-grow: 1;
+  overflow-y: auto;
+  padding: 1rem;
+}
+
+.input-container {
+  padding: 1rem;
+  background-color: #fff;
+  border-top: 1px solid #e5e5e5;
+}
+
+/* Tailwind CSS color variables */
+:root {
+  --color-primary: 0 0 0;
+  --color-primary-foreground: 255 255 255;
+  --color-secondary: 51 51 51;
+  --color-accent: 0 112 243;
+}
+
+.bg-primary {
+  background-color: rgb(var(--color-primary));
+}
+
+.text-primary-foreground {
+  color: rgb(var(--color-primary-foreground));
+}
+
+.bg-secondary {
+  background-color: rgb(var(--color-secondary));
+}
+
+.text-accent {
+  color: rgb(var(--color-accent));
 }
