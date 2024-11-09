@@ -173,6 +173,7 @@ const Chat = ({ functionCallHandler = () => Promise.resolve("") }: ChatProps) =>
       return;
     }
     try {
+      console.log('Sending message:', text);
       const response = await fetch(`/api/assistants/threads/${threadId}/messages`, {
         method: "POST",
         headers: {
@@ -183,8 +184,8 @@ const Chat = ({ functionCallHandler = () => Promise.resolve("") }: ChatProps) =>
       });
       if (!response.ok) {
         const errorText = await response.text();
-        console.error('Error response:', errorText);
-        throw new Error(`Failed to send message: ${response.status} ${response.statusText}`);
+        console.error('Error response:', response.status, errorText);
+        throw new Error(`Server responded with ${response.status}: ${errorText}`);
       }
       const stream = AssistantStream.fromReadableStream(response.body);
       handleReadableStream(stream);
@@ -413,7 +414,12 @@ const Chat = ({ functionCallHandler = () => Promise.resolve("") }: ChatProps) =>
           </div>
         )}
       </div>
-      {error && <div className={styles.errorMessage}>{error}</div>}
+      {error && (
+        <div className={styles.errorMessage}>
+          {error}
+          <button onClick={() => setError(null)}>Dismiss</button>
+        </div>
+      )}
       <div className={styles.inputContainer}>
         <form onSubmit={handleSubmit} className={styles.inputForm}>
           <input
