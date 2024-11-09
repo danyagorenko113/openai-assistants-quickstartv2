@@ -75,6 +75,7 @@ const Chat = ({ functionCallHandler = () => Promise.resolve("") }: ChatProps) =>
   const [phoneNumber, setPhoneNumber] = useState("");
   const [lastUserMessageBeforeSignUp, setLastUserMessageBeforeSignUp] = useState("");
   const [error, setError] = useState<string | null>(null);
+  const [aiPaused, setAiPaused] = useState(false);
 
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const chatContainerRef = useRef<HTMLDivElement>(null);
@@ -167,8 +168,8 @@ const Chat = ({ functionCallHandler = () => Promise.resolve("") }: ChatProps) =>
   }, [handleTextCreated, handleTextDelta, handleImageFileDone, toolCallCreated, toolCallDelta, handleRequiresAction]);
 
   const sendMessage = useCallback(async (text: string) => {
-    if (!threadId) {
-      console.error('No thread ID available');
+    if (!threadId || aiPaused) {
+      console.error('No thread ID available or AI is paused');
       setError('Unable to send message. Please try again.');
       return;
     }
@@ -193,7 +194,7 @@ const Chat = ({ functionCallHandler = () => Promise.resolve("") }: ChatProps) =>
       setError(`Failed to send message: ${error instanceof Error ? error.message : 'Unknown error'}`);
       setInputDisabled(false);
     }
-  }, [threadId, handleReadableStream, token]);
+  }, [threadId, handleReadableStream, token, aiPaused]);
 
   const submitActionResult = useCallback(async (runId: string, toolCallOutputs: any[]) => {
     try {
@@ -305,6 +306,7 @@ const Chat = ({ functionCallHandler = () => Promise.resolve("") }: ChatProps) =>
         setSignUpStep("none");
         appendMessage("user", "********", true); // Display asterisks instead of the actual password
         appendMessage("system", "Thank you! Your account has been successfully created.");
+        setAiPaused(false); // Resume AI responses
         sendMessage(lastUserMessageBeforeSignUp);
         setUserInput("");
       } catch (error) {
@@ -317,6 +319,7 @@ const Chat = ({ functionCallHandler = () => Promise.resolve("") }: ChatProps) =>
     } else {
       if (userMessageCount === 4) {
         setLastUserMessageBeforeSignUp(userInput);
+        setAiPaused(true); // Pause AI responses
       }
       try {
         await sendMessage(userInput);
@@ -344,6 +347,7 @@ const Chat = ({ functionCallHandler = () => Promise.resolve("") }: ChatProps) =>
   const handleQuickQuestionClick = useCallback((question: string) => {
     if (userMessageCount === 4) {
       setLastUserMessageBeforeSignUp(question);
+      setAiPaused(true); // Pause AI responses
     }
     sendMessage(question);
     setMessages(prev => [...prev, { role: "user", text: question }]);
