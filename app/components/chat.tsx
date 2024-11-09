@@ -27,7 +27,7 @@ const UserMessage = React.memo(({ text, isPassword }: { text: string; isPassword
 const AssistantMessage = React.memo(({ text }: { text: string }) => (
   <div className={styles.assistantMessage}>
     <img 
-      src="/HSS_logo.svg" 
+      src="/HSS_logo.png" 
       alt="Assistant Avatar" 
       className={styles.avatar}
     />
