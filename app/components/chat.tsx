@@ -19,13 +19,13 @@ type MessageProps = {
 };
 
 const UserMessage = React.memo(({ text, isPassword }: { text: string; isPassword?: boolean }) => (
-  <div className={styles.userMessage}>
+  <div className={`${styles.userMessage} animate-fadeIn`}>
     {isPassword ? text.replace(/./g, '*') : text}
   </div>
 ));
 
 const AssistantMessage = React.memo(({ text }: { text: string }) => (
-  <div className={styles.assistantMessage}>
+  <div className={`${styles.assistantMessage} animate-fadeIn`}>
     <img 
       src="/HSS_logo.png" 
       alt="Assistant Avatar" 
@@ -38,7 +38,7 @@ const AssistantMessage = React.memo(({ text }: { text: string }) => (
 ));
 
 const CodeMessage = React.memo(({ text }: { text: string }) => (
-  <div className={styles.codeMessage}>
+  <div className={`${styles.codeMessage} animate-fadeIn`}>
     {text.split("\n").map((line, index) => (
       <div key={index}>
         <span>{`${index + 1}. `}</span>
@@ -49,7 +49,7 @@ const CodeMessage = React.memo(({ text }: { text: string }) => (
 ));
 
 const SystemMessage = React.memo(({ text }: { text: string }) => (
-  <div className={styles.assistantMessage}>
+  <div className={`${styles.systemMessage} animate-fadeIn`}>
     <Markdown>{text}</Markdown>
   </div>
 ));
