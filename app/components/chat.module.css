@@ -5,6 +5,7 @@
   width: 100%;
   max-width: 800px;
   margin: 0 auto;
+  font-family: 'Roboto', sans-serif;
 }
 
 .messagesContainer {
@@ -58,6 +59,7 @@
   border: 2px solid transparent;
   font-size: 1em;
   background-color: #efefef;
+  font-family: 'Roboto', sans-serif;
 }
 
 .input:focus {
@@ -73,6 +75,7 @@
   border: none;
   font-size: 1em;
   border-radius: 60px;
+  font-family: 'Roboto', sans-serif;
   cursor: pointer;
   transition: background-color 0.3s ease;
 }
@@ -97,6 +100,7 @@
   overflow-wrap: break-word;
   font-size: 16px;
   line-height: 1.5;
+  font-family: 'Roboto', sans-serif;
 }
 
 .assistantMessage img {
