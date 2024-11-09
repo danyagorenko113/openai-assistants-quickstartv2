@@ -93,12 +93,12 @@
 
 .userMessage {
   align-self: flex-end;
-  color: #fff;
-  background-color: #000;
+  color: #000;
+  background-color: #f3f3f3;
 }
 
 .assistantMessage {
-  background-color: #f7f7f8;
+  background-color: transparent;
   width: 100%;
 }
 
