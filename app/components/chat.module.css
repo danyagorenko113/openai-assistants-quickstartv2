@@ -20,6 +20,7 @@
   display: flex;
   flex-direction: column;
   padding: 16px;
+  -webkit-overflow-scrolling: touch;
 }
 
 .quickQuestionsWrapper {
@@ -50,6 +51,11 @@
   padding: 16px;
   background-color: #fff;
   border-top: 1px solid #e5e5e5;
+  position: sticky;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  z-index: 10;
 }
 
 .inputForm {
@@ -224,6 +230,19 @@
 }
 
 @media (max-width: 768px) {
+  .chatContainer {
+    height: 100%;
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+  }
+
+  .messagesContainer {
+    padding: 12px;
+  }
+
   .inputContainer {
     padding: 12px;
   }
@@ -236,5 +255,10 @@
   .button {
     font-size: 0.9em;
     padding: 6px 18px;
+  }
+
+  .userMessage,
+  .assistantMessage {
+    font-size: 14px;
   }
 }
