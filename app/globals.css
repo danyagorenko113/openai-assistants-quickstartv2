@@ -43,12 +43,7 @@ html,
 body {
   max-width: 100vw;
   height: 100%;
-  overflow: hidden;
-  position: fixed;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
+  overflow-x: hidden;
   font-family: var(--font-inter);
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
@@ -67,15 +62,15 @@ body {
   );
   font-feature-settings: "ss01" 1, "ss02" 1, "ss03" 1;
   letter-spacing: -0.01em;
-  overscroll-behavior: none;
+  overscroll-behavior-y: contain;
   -webkit-overflow-scrolling: touch;
   width: 100%;
   height: 100%;
-  overflow-x: hidden;
+  position: fixed;
 }
 
 .app-container {
-  position: fixed;
+  position: absolute;
   top: 0;
   left: 0;
   right: 0;
@@ -84,8 +79,7 @@ body {
   flex-direction: column;
   height: 100vh;
   width: 100vw;
-  overflow: hidden;
-  touch-action: none;
+  overflow-y: auto;
   -webkit-overflow-scrolling: touch;
 }
 
@@ -275,5 +269,20 @@ li {
 
   .input-container {
     padding: 0.5rem;
+  }
+}
+
+@media (max-width: 768px) {
+  body {
+    position: fixed;
+    overflow-y: scroll;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .app-container {
+    position: absolute;
+    height: 100%;
+    overflow-y: scroll;
+    -webkit-overflow-scrolling: touch;
   }
 }
