@@ -228,13 +228,13 @@ const Chat = ({ functionCallHandler = () => Promise.resolve("") }: ChatProps) =>
         body: JSON.stringify({ phoneNumber, password }),
       });
 
+      const data = await response.json();
+
       if (!response.ok) {
-        const errorData = await response.json();
-        console.error("Registration response not OK:", response.status, errorData);
-        throw new Error(errorData.error || `Registration failed with status ${response.status}`);
+        console.error("Registration response not OK:", response.status, data);
+        throw new Error(data.error || `Registration failed with status ${response.status}`);
       }
 
-      const data = await response.json();
       console.log("Registration successful, received data:", data);
       if (!data.token) {
         throw new Error("No token received from server");
@@ -242,10 +242,7 @@ const Chat = ({ functionCallHandler = () => Promise.resolve("") }: ChatProps) =>
       return data.token;
     } catch (error) {
       console.error('Error in registerUser:', error);
-      if (error instanceof Error) {
-        throw new Error(`Registration failed: ${error.message}`);
-      }
-      throw new Error('An unexpected error occurred during registration');
+      throw error; // Re-throw the error to be handled in the calling function
     }
   };
 
@@ -258,11 +255,15 @@ const Chat = ({ functionCallHandler = () => Promise.resolve("") }: ChatProps) =>
     if (signUpStep === "phone") {
       setPhoneNumber(userInput);
       setSignUpStep("password");
-      appendMessage("system", "Thank you! Please write a password to save your conversation.");
+      appendMessage("system", "Thank you! Please create a password (at least 8 characters) to save your conversation.");
       appendMessage("user", userInput);
       setUserInput("");
       setInputDisabled(false);
     } else if (signUpStep === "password") {
+      if (userInput.length < 8) {
+        setError("Password must be at least 8 characters long.");
+        return;
+      }
       try {
         console.log("Attempting to register user...");
         const newToken = await registerUser(phoneNumber, userInput);
@@ -272,19 +273,14 @@ const Chat = ({ functionCallHandler = () => Promise.resolve("") }: ChatProps) =>
         localStorage.setItem('token', newToken);
         
         setSignUpStep("none");
-        appendMessage("user", userInput, true);
+        appendMessage("user", "********", true); // Display asterisks instead of the actual password
         appendMessage("system", "Thank you! Your account has been successfully created.");
         sendMessage(lastUserMessageBeforeSignUp);
         setUserInput("");
       } catch (error) {
         console.error("Registration error:", error);
-        if (error instanceof Error) {
-          setError(`Registration failed: ${error.message}`);
-          appendMessage("system", `Error: ${error.message}. Please try again.`);
-        } else {
-          setError("An unexpected error occurred during registration. Please try again.");
-          appendMessage("system", "An unexpected error occurred. Please try again.");
-        }
+        setError(error instanceof Error ? error.message : "An unexpected error occurred during registration. Please try again.");
+        appendMessage("system", `Error: ${error instanceof Error ? error.message : "An unexpected error occurred"}. Please try again.`);
         setSignUpStep("phone");
         setPhoneNumber("");
       }
@@ -416,7 +412,7 @@ const Chat = ({ functionCallHandler = () => Promise.resolve("") }: ChatProps) =>
               signUpStep === "phone" 
                 ? "Enter your phone number" 
                 : signUpStep === "password" 
-                  ? "Enter your password" 
+                  ? "Enter your password (min 8 characters)" 
                   : "Enter your question"
             }
             disabled={inputDisabled}
