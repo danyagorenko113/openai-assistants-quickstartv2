@@ -1,3 +1,15 @@
+@import url('https://fonts.googleapis.com/css2?family=Mulish:wght@300;400;500;600;700&display=swap');
+
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+body {
+  font-family: 'Mulish', sans-serif;
+}
+
 .chatContainer {
   display: flex;
   flex-direction: column;
@@ -5,6 +17,7 @@
   width: 100%;
   max-width: 800px;
   margin: 0 auto;
+  font-family: 'Mulish', sans-serif;
 }
 
 .messagesContainer {
@@ -58,6 +71,7 @@
   border: 2px solid transparent;
   font-size: 1em;
   background-color: #efefef;
+  font-family: 'Mulish', sans-serif;
 }
 
 .input:focus {
@@ -73,10 +87,18 @@
   border: none;
   font-size: 1em;
   border-radius: 60px;
+  font-family: 'Mulish', sans-serif;
+  cursor: pointer;
+  transition: background-color 0.3s ease;
+}
+
+.button:hover {
+  background-color: #333;
 }
 
 .button:disabled {
   background-color: lightgrey;
+  cursor: not-allowed;
 }
 
 .userMessage,
@@ -90,6 +112,7 @@
   overflow-wrap: break-word;
   font-size: 16px;
   line-height: 1.5;
+  font-family: 'Mulish', sans-serif;
 }
 
 .assistantMessage img {
@@ -115,7 +138,7 @@
 .codeMessage {
   padding: 16px 24px;
   background-color: #e9e9e9;
-  font-family: monospace;
+  font-family: 'Mulish', monospace;
   counter-reset: line;
 }
 
