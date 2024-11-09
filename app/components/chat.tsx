@@ -281,7 +281,7 @@ const Chat = ({ functionCallHandler = () => Promise.resolve("") }: ChatProps) =>
         setError("Please enter a 9-digit phone number.");
         return;
       }
-      setPhoneNumber(userInput);
+      setPhoneNumber(digitsOnly);
       setSignUpStep("password");
       appendMessage("system", "Thank you! Please create a password (at least 8 characters) to save your conversation.");
       appendMessage("user", userInput);
@@ -294,6 +294,8 @@ const Chat = ({ functionCallHandler = () => Promise.resolve("") }: ChatProps) =>
       }
       try {
         console.log("Attempting to register user...");
+        console.log("Phone number:", phoneNumber);
+        console.log("Password length:", userInput.length);
         const newToken = await registerUser(phoneNumber, userInput);
         console.log("Registration successful, token received");
         setToken(newToken);
