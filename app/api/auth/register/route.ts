@@ -11,21 +11,7 @@ if (!JWT_SECRET) {
 
 export async function POST(request: NextRequest) {
   try {
-    const body = await request.text();
-    console.log("Received raw request body:", body);
-
-    let phoneNumber, password;
-    try {
-      const parsedBody = JSON.parse(body);
-      phoneNumber = parsedBody.phoneNumber;
-      password = parsedBody.password;
-    } catch (parseError) {
-      console.error("Error parsing request body:", parseError);
-      return NextResponse.json(
-        { error: 'Invalid request body' },
-        { status: 400 }
-      );
-    }
+    const { phoneNumber, password } = await request.json();
 
     console.log("Received registration request for phone number:", phoneNumber);
 
@@ -57,22 +43,13 @@ export async function POST(request: NextRequest) {
 
     // Create new user
     console.log("Creating new user");
-    let result;
-    try {
-      result = await sql`
-        INSERT INTO users (phone_number, password)
-        VALUES (${phoneNumber}, ${hashedPassword})
-        RETURNING id, phone_number
-      `;
-    } catch (sqlError) {
-      console.error("SQL Error:", sqlError);
-      return NextResponse.json(
-        { error: 'Database error occurred while creating user' },
-        { status: 500 }
-      );
-    }
+    const result = await sql`
+      INSERT INTO users (phone_number, password)
+      VALUES (${phoneNumber}, ${hashedPassword})
+      RETURNING id, phone_number
+    `;
 
-    if (!result || result.rows.length === 0) {
+    if (result.rows.length === 0) {
       console.error("User insertion failed: No rows returned");
       return NextResponse.json(
         { error: 'Failed to create user' },
@@ -91,20 +68,18 @@ export async function POST(request: NextRequest) {
     );
 
     console.log("User registered successfully");
-    const responseBody = JSON.stringify({ token });
-    console.log("Sending response:", responseBody);
-    return new NextResponse(responseBody, {
-      status: 201,
-      headers: { 'Content-Type': 'application/json' }
-    });
+    return NextResponse.json({ token }, { status: 201 });
   } catch (error) {
     console.error('Registration error:', error);
-    const errorMessage = error instanceof Error ? error.message : 'An unexpected error occurred';
-    const responseBody = JSON.stringify({ error: `Error creating user: ${errorMessage}` });
-    console.log("Sending error response:", responseBody);
-    return new NextResponse(responseBody, {
-      status: 500,
-      headers: { 'Content-Type': 'application/json' }
-    });
+    if (error instanceof Error) {
+      return NextResponse.json(
+        { error: `Error creating user: ${error.message}` },
+        { status: 500 }
+      );
+    }
+    return NextResponse.json(
+      { error: 'An unexpected error occurred' },
+      { status: 500 }
+    );
   }
 }
