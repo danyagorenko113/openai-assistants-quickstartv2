@@ -92,15 +92,33 @@
 .userMessage,
 .assistantMessage,
 .codeMessage {
-  margin: 0; /* Reset margin as we'll use gap */
+  margin: 0;
   padding: 16px 24px;
-  align-self: flex-start;
-  border-radius: 24px;
-  max-width: 80%;
   overflow-wrap: break-word;
   font-size: 16px;
-  line-height: 1.5;
+  line-height: 1.7;
   font-family: var(--font-inter);
+  font-weight: 400;
+  letter-spacing: -0.01em;
+}
+
+.userMessage {
+  align-self: flex-end;
+  color: #000;
+  background-color: #f3f3f3;
+  border-radius: 24px;
+  max-width: 80%;
+}
+
+.assistantMessage {
+  background-color: transparent;
+  width: 100%;
+  max-width: 100%;
+  display: flex;
+  align-items: flex-start;
+  gap: 16px;
+  border-radius: 0;
+  padding: 16px 0;
 }
 
 .assistantMessage img {
@@ -109,25 +127,13 @@
   border-radius: 8px;
 }
 
-.userMessage {
-  align-self: flex-end;
-  color: #000;
-  background-color: #f3f3f3;
-}
-
-.assistantMessage {
-  background-color: transparent;
-  width: 100%;
-  display: flex;
-  align-items: flex-start;
-  gap: 16px;
-}
-
 .codeMessage {
   padding: 16px 24px;
   background-color: #e9e9e9;
   font-family: var(--font-mono);
   counter-reset: line;
+  width: 100%;
+  border-radius: 8px;
 }
 
 .codeMessage > div {
@@ -146,4 +152,78 @@
 
 .assistantMessage :global(p + p) {
   margin-top: 1em;
+}
+
+/* Error message styling */
+.errorMessage {
+  color: #ff0000;
+  background-color: #ffe6e6;
+  padding: 10px;
+  margin: 10px 0;
+  border-radius: 4px;
+  text-align: center;
+}
+
+/* Login form styling */
+.loginForm {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 20px;
+  background-color: #f9f9f9;
+  border-radius: 8px;
+  margin-top: 20px;
+}
+
+.loginForm input {
+  padding: 10px;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+}
+
+.loginForm button {
+  padding: 10px;
+  background-color: #000;
+  color: white;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+}
+
+.loginForm button:hover {
+  background-color: #333;
+}
+
+/* Login icon styling */
+.loginIcon {
+  position: fixed;
+  bottom: 20px;
+  right: 20px;
+  background-color: #000;
+  color: white;
+  padding: 10px;
+  border-radius: 50%;
+  cursor: pointer;
+}
+
+/* Responsive design */
+@media (max-width: 768px) {
+  .chatContainer {
+    max-width: 100%;
+    padding: 0 10px;
+  }
+
+  .userMessage,
+  .assistantMessage {
+    max-width: 90%;
+  }
+
+  .input {
+    font-size: 0.9em;
+  }
+
+  .button {
+    font-size: 0.9em;
+    padding: 6px 18px;
+  }
 }
